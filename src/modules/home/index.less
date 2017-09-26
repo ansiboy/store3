@@ -1,0 +1,141 @@
+@import "../../content/bootstrap-3.3.5/variables.less";
+@import "../../common.less";
+
+.home-index {
+
+    .padding-bottom();
+    .pulldown-indicator {
+        height: @menu-height;
+        padding-top: 20px;
+        text-align: center;
+    }
+    .products {
+        .col-xs-9 {
+            width: 72%;
+        }
+    
+        .name {
+            height: 20px;
+        }
+        .title {
+            height: 20px;
+            color: gray;
+        }
+        .select {
+            i {
+                font-size: 20px;
+            }
+
+            input {
+                width: 40px;
+                position: relative;
+                top: -4px;
+                margin: 0 8px;
+                text-align: center;
+            }
+
+            .icon-shopping-cart {
+                font-size: 20px;
+                position: relative;
+                top: -4px;
+                left: 4px;
+            }
+        }
+
+        .interception {
+            width: 100%;
+            display: block;
+            overflow: hidden;
+            white-space: nowrap;
+            -webkit-text-overflow: ellipsis;
+            -moz-binding: url("ellipsis.xml#ellipsis");
+            -ms-text-overflow: ellipsis;
+            -o-text-overflow: ellipsis;
+            text-overflow: ellipsis;
+        }
+
+        hr {
+            margin:15px 0 15px 0;
+        }
+    }
+
+    section {
+        .header {
+            height: 40px;
+            background-color: @brand-primary;
+            margin-bottom: 20px;
+            i { 
+                color: white;
+                font-size: 20px;
+                margin: 10px 20px 0;
+            }
+        }
+    }
+    
+    footer {
+        .settlement {
+            
+            // position: absolute;
+            width: 100%;
+            height: 50px;
+            padding-top: 10px;
+            background: @bg-color;
+            padding-right: 10px;
+    
+            //.container {
+            background-color: @navbar-default-bg;
+            padding-top: 10px;
+            padding-bottom: 10px;
+            border-top: 1px solid @navbar-default-toggle-border-color;
+            //}
+    
+            .select-all {
+    
+                position: absolute;
+                left: 4px;
+                border: none;
+                background: none;
+    
+                .icon-ok-sign,
+                .icon-circle-blank {
+                    margin-left: -4px;
+                    font-size: 20px;
+                    color: @brand-primary;
+                }
+    
+                .text {
+                    position: relative;
+                    left: 8px;
+                    top: -2px;
+                }
+            }
+    
+            .btn {
+                min-width: 80px;
+            }
+
+            i {
+                font-size: 28px;
+                margin-left: 14px;
+                margin-top: 14px; 
+            }
+
+            .badge {
+                position: relative;
+                top: -14px;
+                left: -4px;
+                background-color: @brand-primary;
+            }
+
+            label {
+                padding-right: 10px;
+                padding-top: 2px; 
+            }
+        } 
+    }
+
+   
+}
+
+
+
