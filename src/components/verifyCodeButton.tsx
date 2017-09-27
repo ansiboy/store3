@@ -3,7 +3,7 @@ import * as services from 'services';
 let member = new services.MemberService();
 
 class VerifyCodeButton extends React.Component<
-    React.Props<VerifyCodeButton> & { get_mobile: () => string, set_smsId: (value: string) => void, type: services.VerifyCodeType }, { letfSeconds: number }>{
+    React.Props<VerifyCodeButton> & { get_mobile: () => string, set_smsId: (value: string) => void, type: VerifyCodeType }, { letfSeconds: number }>{
 
     constructor(props) {
         super(props);

@@ -1,5 +1,5 @@
 import { Page, Menu, app } from 'site';
-import { MemberService, UserInfo, userData } from 'services';
+import { MemberService, userData } from 'services';
 import * as ui from 'ui';
 
 export default async function (page: Page) {

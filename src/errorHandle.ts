@@ -4,8 +4,8 @@ const loadingClassName = 'loading';
 
 let isLoginPage = false;
 export default function (app: chitu.Application, err: Error) {
-    
-    var currentPage = app.currentPage;    
+
+    var currentPage = app.currentPage;
     switch (err.name) {
         case '600':     //600 为未知异常
         default:
@@ -16,18 +16,20 @@ export default function (app: chitu.Application, err: Error) {
             if (isLoginPage) {
                 return;
             }
-            isLoginPage = true;
-            app.showPage('user_login', { return: currentPage.routeData.routeString });
-            setTimeout(() => {
-                isLoginPage = false;
-                currentPage.close();
-            }, 800);
+            // isLoginPage = true;
+            app.redirect('user_login', { return: currentPage.routeData.routeString });
+            // setTimeout(() => {
+            //     isLoginPage = false;
+            //     currentPage.close();
+            // }, 800);
             break;
         case '724':
-        //59a0d63ab58cf427f90c7d3e
+            //59a0d63ab58cf427f90c7d3e
             userData.userToken.value = null;
-            
-            app.showPage('user_login', { return: currentPage.routeData.routeString });
+            app.redirect('user_login', { return: currentPage.routeData.routeString });
+            break;
+        case '725':
+            ui.alert({ title: '错误', message: 'application-key 配置错误' });
             break;
     }
 }

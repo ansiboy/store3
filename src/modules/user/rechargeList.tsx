@@ -1,5 +1,5 @@
 import { Page, defaultNavBar, app, formatDate } from 'site';
-import { AccountService, BalanceDetail } from 'services';
+import { AccountService } from 'services';
 
 let { PageComponent, PageHeader, PageView, Button, DataList } = controls;
 

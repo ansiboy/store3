@@ -1,17 +1,17 @@
 import { Page, defaultNavBar } from 'site';
-import { LocationService, Provinces, Cities } from 'services';
+import { LocationService } from 'services';
 import AutoLocation from 'components/autoLocation'
 let { PageComponent, PageHeader, PageFooter, PageView, ImageBox, DataList } = controls;
 
 export default function (page: Page) {
     let station = page.createService(LocationService);
     interface locationState {
-        cities: Array<Cities>,
+        cities: Array<City>,
         key: Number,
         text: String,
         status: Boolean
     }
-    class LocationPage extends React.Component<{ provincesProps: Provinces[] }, locationState>{
+    class LocationPage extends React.Component<{ provincesProps: Province[] }, locationState>{
         constructor(props) {
             super(props);
             this.state = {
@@ -33,11 +33,11 @@ export default function (page: Page) {
         }
         render() {
             return (
-                <PageComponent>
-                    <PageHeader>
+                <div>
+                    <header>
                         {defaultNavBar({ title: '我的位置' })}
-                    </PageHeader>
-                    <PageView>
+                    </header>
+                    <section>
                         <div className="location-content">
                             <div className="autoLocation"><p className="location-text">当前位置:{this.state.text}</p></div>
                             <div><p>选择位置:</p></div>
@@ -56,8 +56,8 @@ export default function (page: Page) {
                                 ))}
                             </div>
                         </div>
-                    </PageView>
-                </PageComponent>
+                    </section>
+                </div>
             )
         }
     }

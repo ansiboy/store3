@@ -127,3 +127,80 @@ interface CouponCode {
     UsedDateTime: Date,
     CreateDateTime: Date,
 }
+
+interface ShoppingCartItem {
+    Id: string,
+    Amount: number,
+    Count: number,
+    ImageUrl: string,
+    Name: string,
+    ProductId: string,
+    Remark: string,
+    Selected: boolean,
+    Unit: string,
+    Price: number,
+
+    /**
+     * 优惠类型，Reduce 为满减, Discount 为满折，Given 为满赠
+     */
+    Type?: 'Given' | 'Reduce' | 'Discount'
+}
+
+interface News {
+    Id: string,
+    Title: string,
+    ImgUrl: string,
+    Date: Date,
+    Content: string
+}
+
+interface UserInfo {
+    Id: string;
+    NickName: string;
+    Country: string;
+    Province: string;
+    City: string;
+    HeadImageUrl: string;
+    Gender: string;
+    UserId: string;
+    CreateDateTime: string;
+    Mobile: string
+}
+
+interface RegisterModel {
+    user: { mobile: string, password: string },
+    smsId: string,
+    verifyCode: string
+}
+
+type VerifyCodeType = 'reigster' | 'changeMobile';
+
+interface BalanceDetail {
+    Amount: number,
+    Balance: number,
+    CreateDateTime: Date,
+    RelatedId: string,
+    RelatedType: string,
+    Type: string
+}
+interface ScoreDetail {
+    Score: number,
+    Type: string,
+    CreateDateTime: Date,
+    Balance: number,
+}
+interface Account {
+    UserId: string;
+    Balance: number;
+}
+
+interface Province {
+    Id: string,
+    Name: string
+    Cities: Array<City>
+}
+interface City {
+    Id: string,
+    Name: string,
+}
+

@@ -12,15 +12,15 @@ export default function (page: Page) {
     let formElement: HTMLFormElement;
     let validator: FormValidator;
 
-    let returnString = page.routeData.values.reutrn || 'user_index';
+    let returnString = page.routeData.values.return || 'user_index';
 
     var jsx =
-        <PageComponent>
-            <PageHeader>
+        <div>
+            <header>
                 {defaultNavBar({ title: "登录" })}
-            </PageHeader>
-            <PageFooter></PageFooter>
-            <PageView>
+            </header>
+            <footer></footer>
+            <section>
                 <form className="form-horizontal container"
                     ref={(e: HTMLFormElement) => formElement = e || formElement}>
                     <div className="form-group">
@@ -65,8 +65,8 @@ export default function (page: Page) {
                         </div>
                     </div>
                 </form>
-            </PageView>
-        </PageComponent>;
+            </section>
+        </div>;
 
     ReactDOM.render(jsx, page.element);
 }

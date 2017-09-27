@@ -7,7 +7,7 @@ let { PageComponent, PageHeader, PageFooter, PageView, ImageBox, DataList } = co
 
 
 export default function (page: Page) {
-    class IndexPage extends React.Component<{ userInfo: services.UserInfo }, { userInfo: services.UserInfo }>{
+    class IndexPage extends React.Component<{ userInfo: UserInfo }, { userInfo: UserInfo }>{
         constructor(props) {
             super(props);
             this.state = { userInfo: this.props.userInfo };
@@ -24,11 +24,11 @@ export default function (page: Page) {
         render() {
             let userInfo = this.state.userInfo;
             return (
-                <PageComponent>
-                    <PageHeader>
+                <div>
+                    <header>
                         {defaultNavBar({ title: '账户安全' })}
-                    </PageHeader>
-                    <PageView>
+                    </header>
+                    <section>
                         <div className="container">
                             <div className="list-group">
                                 <a href="#user_accountSecurity_loginPassword" className="list-group-item row">
@@ -55,8 +55,8 @@ export default function (page: Page) {
                             <div className="list-group">
                             </div>
                         </div>
-                    </PageView>
-                </PageComponent>
+                    </section>
+                </div>
             )
         }
     }

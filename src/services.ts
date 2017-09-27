@@ -12,7 +12,7 @@ let config = {
         weixin: `https://${REMOTE_HOST}/UserWeiXin/`,
         account: `https://${REMOTE_HOST}/UserAccount/`,
     },
-    appToken: '59a0d63ab58cf427f90c7d3e',
+    appKey: '59c8e00a675d1b3414f83fc3',
     /** 调用服务接口超时时间，单位为秒 */
     ajaxTimeout: 30,
     pageSize: 10
@@ -48,7 +48,6 @@ export function imageUrl(path: string, width?: number) {
 
 
 
-export type News = { Id: string, Title: string, ImgUrl: string, Date: Date, Content: string };
 
 
 async function ajax<T>(url: string, options: RequestInit): Promise<T> {
@@ -133,6 +132,7 @@ export abstract class Service {
     ajax<T>(url: string, options: RequestInit): Promise<T> {
 
         options.headers = options.headers || {};
+        options.headers['application-key'] = config.appKey
         let user_token: string = userData.userToken.value;
         if (user_token) {
             options.headers['user-token'] = user_token;
@@ -168,34 +168,15 @@ export abstract class Service {
         })
     }
 
-
-
     get<T>(url: string, data?: any) {
 
-        // console.assert(storeId() != null);
+        console.assert(url.indexOf('?') < 0);
 
-        data = data || {};
-        let headers = {
-            'application-key': config.appToken,
-        };
-
-        if (userData.userToken.value) {
-            headers['user-token'] = userData.userToken.value;
+        if (data) {
+            url = url + '?' + JSON.stringify(data);
         }
 
-        let urlParams = '';
-        for (let key in data) {
-            urlParams = urlParams + `&${key}=${data[key]}`;
-        }
-
-        if (urlParams)
-            url = url.indexOf('?') < 0 ? url + '?' + urlParams : url + '&' + urlParams;
-
-        let options = {
-            headers,
-            method: 'get',
-        }
-        return this.ajax<T>(url, options);
+        return this.ajaxByJSON<T>(url, null, 'get');
     }
 
     post<T>(url: string, data?: Object) {
@@ -207,19 +188,15 @@ export abstract class Service {
     put<T>(url: string, data?: Object) {
         return this.ajaxByJSON<T>(url, data, 'put');
     }
-    private ajaxByJSON<T>(url: string, data?: Object, method?: string) {
+    private ajaxByJSON<T>(url: string, data: Object, method: string) {
 
-        data = data || {};
-        let headers = {
-            'application-key': config.appToken,
-        };
-
-        if (userData.userToken.value)
-            headers['user-token'] = userData.userToken.value;
-
+        // data = data || {};
+        let headers = {};
         headers['content-type'] = 'application/json';
         let body: any;
-        body = JSON.stringify(data);
+        if (data)
+            body = JSON.stringify(data);
+            
         let options = {
             headers,
             body,
@@ -584,22 +561,6 @@ export class ShoppingService extends Service {
     }
 }
 
-export type ShoppingCartItem = {
-    Id: string,
-    Amount: number,
-    Count: number,
-    ImageUrl: string,
-    IsGiven: boolean,
-    Name: string,
-    ProductId: string,
-    Remark: string,
-    Score: number,
-    Selected: boolean,
-    Unit: number,
-    Price: number,
-    Type: 'Reduce' | 'Discount'
-}
-
 export class ShoppingCartService extends Service {
     constructor() {
         super();
@@ -672,26 +633,6 @@ export class ShoppingCartService extends Service {
     }
 }
 
-export interface UserInfo {
-    Id: string;
-    NickName: string;
-    Country: string;
-    Province: string;
-    City: string;
-    HeadImageUrl: string;
-    Gender: string;
-    UserId: string;
-    CreateDateTime: string;
-    Mobile: string
-}
-
-export interface RegisterModel {
-    user: { mobile: string, password: string },
-    smsId: string,
-    verifyCode: string
-}
-
-export type VerifyCodeType = 'reigster' | 'changeMobile';
 
 export class MemberService extends Service {
     constructor() {
@@ -782,24 +723,7 @@ export class MemberService extends Service {
 
 }
 
-export interface BalanceDetail {
-    Amount: number,
-    Balance: number,
-    CreateDateTime: Date,
-    RelatedId: string,
-    RelatedType: string,
-    Type: string
-}
-export interface ScoreDetail {
-    Score: number,
-    Type: string,
-    CreateDateTime: Date,
-    Balance: number,
-}
-export interface Account {
-    UserId: string;
-    Balance: number;
-}
+
 export class AccountService extends Service {
     private url(path: string) {
         return `${config.service.account}${path}`;
@@ -830,6 +754,35 @@ export class AccountService extends Service {
     }
 }
 
+export class LocationService extends Service {
+    private url(path: string) {
+        return `${config.service.shop}${path}`;
+    }
+
+    getLocation = (data) => {
+        return this.get<Province[]>("http://restapi.amap.com/v3/ip", data).then(function (result) {
+            return result;
+        });
+    }
+    getProvinces = () => {
+        return this.get<Province[]>(this.url('Address/GetProvinces')).then(function (result) {
+            return result;
+        });
+    }
+
+    getCities = (provinceId) => {
+        return this.get<City[]>(this.url('Address/GetCities'), { provinceId: provinceId }).then((result) => {
+            return result;
+        });
+    }
+
+    getProvincesAndCities = () => {
+        return this.get<any>(this.url('Address/GetProvinces'), { includeCities: true }).then(function (result) {
+            return result;
+        });
+    }
+}
+
 // 服务以及实体类模块 结束
 //==========================================================
 
@@ -838,7 +791,8 @@ export class ValueStore<T> {
     private funcs = new Array<(args: T) => void>();
     private _value: T;
 
-    constructor() {
+    constructor(value?: T) {
+        this._value = value;
     }
     add(func: (value: T) => any): (args: T) => any {
         this.funcs.push(func);
@@ -854,8 +808,8 @@ export class ValueStore<T> {
         return this._value;
     }
     set value(value: T) {
-        if (this._value == value)
-            return;
+        // if (this._value == value)
+        //     return;
 
         this._value = value;
         this.fire(value);
@@ -922,14 +876,18 @@ class UserData {
         return this._shoppingCartItems;
     }
 
-
     get userToken() {
         return this._userToken;
     }
 }
 
+
+
 export let userData = new UserData();;
-userData.userToken.add(() => {
+userData.userToken.add((value) => {
+    if (!value)
+        return;
+
     let ShoppingCart = new ShoppingCartService();
 
     ShoppingCart.items().then((value) => {
@@ -959,7 +917,7 @@ userData.userToken.add(() => {
 
     userData.shoppingCartItems.add(value => {
         //==============================================
-        // Price >0 的为山商品，<= 0 的为赠品，折扣
+        // Price >0 的为商品，<= 0 的为赠品，折扣
         let sum = 0;
         value.filter(o => o.Price > 0).forEach(o => sum = sum + o.Count);
         userData.productsCount.value = sum;
@@ -969,40 +927,4 @@ userData.userToken.add(() => {
 
 userData.userToken.value = localStorage.getItem('userToken');
 
-export interface Provinces {
-    Id: string,
-    Name: string
-    Cities: Array<Cities>
-}
-export interface Cities {
-    Id: string,
-    Name: string,
-}
-export class LocationService extends Service {
-    private url(path: string) {
-        return `${config.service.shop}${path}`;
-    }
 
-    getLocation = (data) => {
-        return this.get<Provinces[]>("http://restapi.amap.com/v3/ip", data).then(function (result) {
-            return result;
-        });
-    }
-    getProvinces = () => {
-        return this.get<Provinces[]>(this.url('Address/GetProvinces')).then(function (result) {
-            return result;
-        });
-    }
-
-    getCities = (provinceId) => {
-        return this.get<Cities[]>(this.url('Address/GetCities'), { provinceId: provinceId }).then((result) => {
-            return result;
-        });
-    }
-
-    getProvincesAndCities = () => {
-        return this.get<any>(this.url('Address/GetProvinces'), { includeCities: true }).then(function (result) {
-            return result;
-        });
-    }
-}

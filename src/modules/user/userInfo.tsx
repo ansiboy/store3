@@ -1,5 +1,5 @@
 import { Page, defaultNavBar, app } from 'site';
-import { ShoppingService, MemberService, UserInfo } from 'services';
+import { ShoppingService, MemberService } from 'services';
 import * as ui from 'ui';
 // let { PageComponent, PageHeader, PageView, Button, DataList, PageFooter, ImageBox } = controls;
 

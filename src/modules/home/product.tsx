@@ -1,4 +1,5 @@
-import { ShoppingCartService, ShoppingService, userData, ValueStore, imageUrl } from 'services';
+import { ShoppingService, userData, ValueStore, imageUrl } from 'services';//,
+import shoppingCart from 'myShoppingCart';
 import { Page, config, app, subscribe } from 'site';
 import * as ui from 'ui';
 
@@ -12,7 +13,7 @@ export default async function (page: Page) {
     interface ProductPageState {
         productSelectedText: string,
         isFavored: boolean,
-        productsCount: number,
+        // productsCount: number,
         content: string,
         count: number,
         product: Product;
@@ -20,7 +21,7 @@ export default async function (page: Page) {
     }
 
     let shop = page.createService(ShoppingService);
-    let shoppingCart = page.createService(ShoppingCartService);
+    // let shoppingCart = page.createService(ShoppingCartService);
     let { id } = page.routeData.values
 
 
@@ -42,7 +43,8 @@ export default async function (page: Page) {
                 productSelectedText: this.productSelectedText(this.props.product),
                 content: null,
                 isFavored: false,
-                productsCount: userData.productsCount.value, count: 1,
+                // productsCount: userData.productsCount.value, 
+                count: 1,
                 product: this.props.product
             };
 
@@ -56,8 +58,12 @@ export default async function (page: Page) {
                 this.setState(this.state);
             })
 
+            shoppingCart.items.add((items) => {
+                this.setState(this.state);
+            })
+
             subscribe(this, userData.productsCount, (value) => {
-                this.state.productsCount = value;
+                // this.state.productsCount = value;
                 this.setState(this.state);
             });
             subscribe(this, productStore, (value) => {
@@ -136,8 +142,8 @@ export default async function (page: Page) {
         //     // this.introduceView.slide('down');
         // }
 
-        addToShoppingCart() {
-            return shoppingCart.addItem(id, this.state.count);
+        addToShoppingCart(product: Product) {
+            return shoppingCart.addItem(product, this.state.count);
         }
 
         updateProductCount(value) {
@@ -165,7 +171,8 @@ export default async function (page: Page) {
 
         render() {
             let p = this.state.product;
-            let { productsCount, couponsCount } = this.state;
+            let { couponsCount } = this.state;
+            let productsCount = shoppingCart.productsCount;
             return (
                 <div>
                     <section className="main">
@@ -258,13 +265,13 @@ export default async function (page: Page) {
                         <nav>
                             <a href={'#shopping_shoppingCartNoMenu'} className="pull-left">
                                 <i className="icon-shopping-cart"></i>
-                                {this.state.productsCount ?
+                                {productsCount ?
                                     <span className="badge bg-primary">{productsCount}</span>
                                     : null
                                 }
                             </a>
-                            <button onClick={() => this.addToShoppingCart()} className="btn btn-primary pull-right"
-                                ref={(e: HTMLButtonElement) => e ? e.onclick = ui.buttonOnClick(() => this.addToShoppingCart()) : null} >加入购物车</button>
+                            <button className="btn btn-primary pull-right"
+                                ref={(e: HTMLButtonElement) => e ? e.onclick = ui.buttonOnClick(() => this.addToShoppingCart(p)) : null} >加入购物车</button>
                         </nav>
                     </footer>
                     <ProductPanel ref={(o) => this.productPanel = o} parent={this} product={this.props.product} />
@@ -395,7 +402,7 @@ export default async function (page: Page) {
                                 </div>
                             </div>
                             <div className="clearfix"></div>
-                            <button onClick={() => { this.props.parent.addToShoppingCart(); this.panel.hide() }} className="btn btn-primary btn-block"
+                            <button onClick={() => { this.props.parent.addToShoppingCart(p); this.panel.hide() }} className="btn btn-primary btn-block"
                                 data-dialog="toast:'成功添加到购物车'">
                                 加入购物车
                         </button>
@@ -565,7 +572,7 @@ export class Panel extends React.Component<PanelProps, {}>{
                             : null
                         }
                     </div>
-                </div>
+                </div>render1
             </div>
             <div ref={(o: HTMLElement) => this.backdrop = o} className="modal-backdrop in">
             </div>
