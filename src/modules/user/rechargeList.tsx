@@ -1,7 +1,6 @@
 import { Page, defaultNavBar, app, formatDate } from 'site';
 import { AccountService } from 'services';
-
-let { PageComponent, PageHeader, PageView, Button, DataList } = controls;
+import { DataList } from 'components/dataList';
 
 export default function (page: Page) {
 
@@ -36,14 +35,14 @@ export default function (page: Page) {
 
         render() {
             return (
-                <PageComponent>
-                    <PageHeader>
+                <div>
+                    <header>
                         {defaultNavBar({
                             title: '充值记录',
-                            right: <Button onClick={() => this.charge()} className="right-button" style={{ width: 'unset' }}>充值</Button>
+                            right: <button onClick={() => this.charge()} className="right-button" style={{ width: 'unset' }}>充值</button>
                         })}
-                    </PageHeader>
-                    <PageView>
+                    </header>
+                    <section>
                         <DataList loadData={(i) => this.loadData(i)} pageSize={10000}
                             dataItem={(o: BalanceDetail, i: number) =>
                                 <div key={i} className="container">
@@ -70,8 +69,8 @@ export default function (page: Page) {
                                     </div>
                                     <h4 className="text">暂无充值记录</h4>
                                 </div>} />
-                    </PageView>
-                </PageComponent>
+                    </section>
+                </div>
             );
         }
     }

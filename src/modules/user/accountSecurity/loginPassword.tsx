@@ -4,7 +4,6 @@ import * as ui from 'ui';
 import FormValidator = require('core/formValidator');
 import WizardComponent = require('modules/user/accountSecurity/wizard');
 
-let { PageComponent, PageHeader, PageFooter, PageView, ImageBox, DataList } = controls;
 export default function (page: Page) {
     class LoginPasswordPage extends React.Component<{ userInfo: UserInfo }, { step: number }>{
         private validator: FormValidator;

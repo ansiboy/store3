@@ -1,11 +1,8 @@
 import { Page, defaultNavBar, app } from 'site';
-import { ShoppingService, ShoppingCartService, AccountService, userData } from 'services';
+import { ShoppingService, ShoppingCartService, AccountService, userData, imageUrl } from 'services';
 import { SetAddress, ReceiptListRouteValues } from 'modules/user/receiptList';
 
 export default function (page: Page) {
-
-    let { loadImage, ImageBox, PullDownIndicator, PullUpIndicator, HtmlView, Panel,
-        PageComponent, PageHeader, PageFooter, PageView, Dialog } = controls;
 
     let shop = page.createService(ShoppingService);
     let shoppingCart = page.createService(ShoppingCartService)
@@ -60,20 +57,20 @@ export default function (page: Page) {
         render() {
             let order = this.state.order;
             return (
-                <PageComponent>
-                    <PageHeader>
+                <div>
+                    <header>
                         {defaultNavBar({ title: '确认订单', back: () => app.back() })}
-                    </PageHeader>
-                    <PageFooter>
+                    </header>
+                    <footer>
                         <div className="container" style={{ paddingTop: 10, paddingBottom: 10 }}>
                             <button onClick={() => this.confirmOrder()} className="btn btn-block btn-primary">提交订单</button>
                         </div>
-                    </PageFooter>
-                    <PageView>
+                    </footer>
+                    <section>
                         <div className="container">
                             <h4 className="text-primary">收货信息</h4>
                             <a style={{ minHeight: 40, display: order.ReceiptAddress ? 'none' : 'block' }}
-                                         onClick={() => this.showReceiptList()}>
+                                onClick={() => this.showReceiptList()}>
                                 <div className="alert alert-danger text-center">
                                     点击这里设置收货信息
                                 </div>
@@ -97,7 +94,7 @@ export default function (page: Page) {
                                 {order.OrderDetails.map((o, i) => (
                                     <li key={i} data-bind="visible:ko.unwrap(Price) >= 0" className="list-group-item">
                                         <div className="pull-left" style={{ width: 60, height: 60 }}>
-                                            <ImageBox src={o.ImageUrl} className="img-responsive" />
+                                            <img src={imageUrl(o.ImageUrl, 50)} className="img-responsive" />
                                         </div>
                                         <div style={{ marginLeft: 70 }}>
                                             <div style={{ marginBottom: 10 }}>
@@ -203,8 +200,8 @@ export default function (page: Page) {
                                 </div>
                             </div>
                         </div>
-                    </PageView >
-                </PageComponent>
+                    </section >
+                </div>
             );
         }
     }

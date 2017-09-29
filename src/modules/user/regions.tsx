@@ -1,6 +1,5 @@
 import { Page, defaultNavBar, app } from 'site';
 import { ShoppingService } from 'services';
-let { PageComponent, PageHeader, PageFooter, PageView, Button, DataList } = controls;
 
 export interface RegionsPageRouteValues {
     province: Region,
@@ -18,10 +17,10 @@ export default function (page: Page) {
 
     class RegiosPage extends React.Component<{ provinces: Region[] }, RegiosPageState>
     {
-        private provincesView: controls.PageView;
-        private citiesView: controls.PageView;
-        private countriesView: controls.PageView;
-        private views: controls.PageView[];
+        private provincesView: HTMLElement;
+        private citiesView: HTMLElement;
+        private countriesView: HTMLElement;
+        private views: HTMLElement[];
         private activeViewIndex: number = 0;
 
         constructor(props) {
@@ -67,12 +66,12 @@ export default function (page: Page) {
                 return;
             }
 
-            prevView.element.style.transform = 'translateX(-100%)';
+            prevView.style.transform = 'translateX(-100%)';
             setTimeout(() => {
-                activeView.element.style.transition = '0.4s';
-                activeView.element.style.transform = 'translateX(100%)';
-                prevView.element.style.transition = '0.4s';
-                prevView.element.style.transform = 'translateX(0)';
+                activeView.style.transition = '0.4s';
+                activeView.style.transform = 'translateX(100%)';
+                prevView.style.transition = '0.4s';
+                prevView.style.transform = 'translateX(0)';
             }, 100);
 
             this.activeViewIndex = this.activeViewIndex - 1;
@@ -84,12 +83,12 @@ export default function (page: Page) {
                 return;
             }
 
-            nextView.element.style.transform = 'translateX(100%)';
+            nextView.style.transform = 'translateX(100%)';
             setTimeout(() => {
-                activeView.element.style.transition = '0.4s';
-                activeView.element.style.transform = 'translateX(-100%)';
-                nextView.element.style.transition = '0.4s';
-                nextView.element.style.transform = 'translateX(0)';
+                activeView.style.transition = '0.4s';
+                activeView.style.transform = 'translateX(-100%)';
+                nextView.style.transition = '0.4s';
+                nextView.style.transform = 'translateX(0)';
             }, 100);
             this.activeViewIndex = this.activeViewIndex + 1;
         }
@@ -110,12 +109,11 @@ export default function (page: Page) {
             let countries = this.state.countries;
             let province = this.state.currentProvince;
             return (
-                <PageComponent>
-                    <PageHeader>
+                <div>
+                    <header>
                         {defaultNavBar({ title: this.state.title, back: () => this.back() })}
-                    </PageHeader>
-                    <PageFooter></PageFooter>
-                    <PageView ref={o => this.provincesView = o}>
+                    </header>
+                    <section ref={(o:HTMLElement) => this.provincesView = o}>
                         <ul className="list-group">
                             {provinces.map(o =>
                                 <li className="list-group-item" key={o.Id}
@@ -125,8 +123,8 @@ export default function (page: Page) {
                                 </li>
                             )}
                         </ul>
-                    </PageView>
-                    <PageView ref={o => this.citiesView = o} style={{ transform: 'translateX(100%)' }}>
+                    </section>
+                    <section ref={(o:HTMLElement) => this.citiesView = o} style={{ transform: 'translateX(100%)' }}>
                         <ul className="list-group">
                             {cities.map(o =>
                                 <li className="list-group-item" key={o.Id}
@@ -136,8 +134,8 @@ export default function (page: Page) {
                                 </li>
                             )}
                         </ul>
-                    </PageView>
-                    <PageView ref={o => this.countriesView = o} style={{ transform: 'translateX(200%)' }}>
+                    </section>
+                    <section ref={(o:HTMLElement) => this.countriesView = o} style={{ transform: 'translateX(200%)' }}>
                         <ul className="list-group">
                             {countries.map(o =>
                                 <li className="list-group-item" key={o.Id}
@@ -147,8 +145,8 @@ export default function (page: Page) {
                                 </li>
                             )}
                         </ul>
-                    </PageView>
-                </PageComponent>
+                    </section>
+                </div>
             );
         }
     }

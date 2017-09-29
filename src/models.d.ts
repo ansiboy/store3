@@ -31,7 +31,8 @@ interface Product {
     ProductCategoryId: string, Name: string, //IsFavored?: boolean,
     ProductCategoryName: string,
     CustomProperties: Array<CustomProperty>,
-    Promotions: Promotion[]
+    Promotions: Promotion[],
+    Title: string
 }
 
 interface Promotion {
@@ -129,15 +130,15 @@ interface CouponCode {
 }
 
 interface ShoppingCartItem {
-    Id: string,
+    // Id?: string,
     Amount: number,
     Count: number,
-    ImageUrl: string,
+    ImagePath: string,
     Name: string,
     ProductId: string,
-    Remark: string,
+    Remark?: string,
     Selected: boolean,
-    Unit: string,
+    // Unit: string,
     Price: number,
 
     /**

@@ -1,21 +1,19 @@
 import { Page, Menu, defaultNavBar, app } from 'site';
-import { ShoppingCartService, ShoppingService, userData } from 'services';
-import cart from 'myShoppingCart';
+import { ShoppingCartService, ShoppingService, imageUrl } from 'services';
 import * as ui from 'ui';
-// let { loadImage, ImageBox, PullDownIndicator, PullUpIndicator, HtmlView, Panel,
-//     PageComponent, PageHeader, PageFooter, PageView, Button, Dialog } = controls;
 
-export default function (page: Page, hideMenu: boolean = false) {
-    type MyShoppingCartItem = ShoppingCartItem & { InputCount: number };
+export default async function (page: Page, hideMenu: boolean = false) {
+
+    let shoppingCart = page.createService(ShoppingCartService);
+
+    type ShoppingCartItemExt = ShoppingCartItem & { InputCount: number };
     interface ShoppingCartState {
-        // items?: MyShoppingCartItem[],
+        items?: ShoppingCartItem[],
         status?: 'normal' | 'edit',
         totalAmount?: number,
-        // selectedCount?: number,
         deleteItems: Array<ShoppingCartItem>
     }
 
-    // let shoppingCart = page.createService(ShoppingCartService);
     let shop = page.createService(ShoppingService);
 
     class ShoppingCartPage extends React.Component<
@@ -26,14 +24,11 @@ export default function (page: Page, hideMenu: boolean = false) {
 
         constructor(props) {
             super(props);
-            this.setStateByItems(cart.items.value || []);
-            cart.items.add(items => {
-                this.setStateByItems(items);
+            this.state = { deleteItems: [], items: shoppingCart.items.value, status: 'normal' };
+            shoppingCart.onChanged(this, (value) => {
+                this.state.items = value;
+                this.setState(this.state);
             })
-            // userData.shoppingCartItems.add(items => {
-            //     this.setStateByItems(items);
-            // })
-
         }
 
         private selectItem(item: ShoppingCartItem) {
@@ -47,39 +42,28 @@ export default function (page: Page, hideMenu: boolean = false) {
                 this.setState(this.state);
                 return;
             }
-            let p = cart.updateItem(item.ProductId, item.Count, !item.Selected); //shoppingCart.updateItem(item.ProductId, item.Count, !item.Selected);
-            //showDialog(this.dialog, p);
+            item.Selected = !item.Selected;
+            let p = shoppingCart.updateItem(item);
             return p;
         }
         private deleteSelectedItems() {
-            // let items: ShoppingCartItem[] = this.state.deleteItems;
-            // return shoppingCart.removeItems(items.map(o => o.ProductId)).then(items => {
-            //     this.setStateByItems(items);
-            //     this.state.deleteItems = [];
-            //     this.setState(this.state);
-            // });
-            return cart.removeAll();
+            return shoppingCart.removeAll();
         }
-        private decreaseCount(item: MyShoppingCartItem) {
+        private decreaseCount(item: ShoppingCartItemExt) {
             if (item.Count == 1) {
                 return;
             }
-            // item.Count = item.Count - 1;
-            // this.setState(this.state);
             this.changeItemCount(item, `${(item.InputCount) - 1}`);
         }
-        private increaseCount(item: MyShoppingCartItem) {
-            // item.Count = item.Count + 1;
-            // this.setState(this.state);
+        private increaseCount(item: ShoppingCartItemExt) {
             this.changeItemCount(item, `${item.InputCount + 1}`);
         }
-        private changeItemCount(item: MyShoppingCartItem, value: string) {
+        private changeItemCount(item: ShoppingCartItemExt, value: string) {
             let count = Number.parseInt(value);
             if (!count) return;
 
-            cart.updateItem(item.ProductId, count);
-            // item.InputCount = count;
-            // this.setState(this.state);
+            item.InputCount = count;
+            shoppingCart.updateItem(item);
         }
         private onEditClick() {
             if (this.state.status == 'normal') {
@@ -88,28 +72,20 @@ export default function (page: Page, hideMenu: boolean = false) {
                 return Promise.resolve();
             }
 
-            let productIds = new Array<string>();
-            let quantities = new Array<number>();
+            let shoppingCartItems = new Array<ShoppingCartItem>();
+            let counts = new Array<number>();
 
-            let items = cart.items.value;
+            let items = this.state.items;
             for (let i = 0; i < items.length; i++) {
-                let item = items[i] as MyShoppingCartItem;
+                let item = items[i] as ShoppingCartItemExt;
                 if (item.InputCount != null && item.InputCount != item.Count) {
-                    productIds.push(item.ProductId);
-                    quantities.push(item.InputCount);
+                    item.Count = item.InputCount;
+                    shoppingCartItems.push(item);
                 }
             }
 
 
-            let result: Promise<any>;
-            if (productIds.length > 0) {
-                result = cart.updateItems(productIds, quantities);
-                // showDialog(this.dialog, result);
-            }
-            else {
-                result = Promise.resolve({});
-            }
-
+            let result: Promise<any> = shoppingCart.setItems(shoppingCartItems);
             result.then(o => {
                 this.state.status = 'normal';
                 this.setState(this.state);
@@ -121,17 +97,16 @@ export default function (page: Page, hideMenu: boolean = false) {
             if (this.state.status == 'normal') {
                 let p: Promise<any>;
                 if (this.isCheckedAll()) {
-                    p = cart.unselectAll();
+                    p = shoppingCart.unselectAll();
                 }
                 else {
-                    p = cart.selectAll();
+                    p = shoppingCart.selectAll();
                 }
 
                 p.then((items) => {
                     this.setStateByItems(items);
                 })
 
-                // showDialog(this.dialog, p);
                 return p;
             }
 
@@ -139,18 +114,17 @@ export default function (page: Page, hideMenu: boolean = false) {
                 this.state.deleteItems = [];
             }
             else {
-                // this.state.deleteItems = this.state.items;
-                this.state.deleteItems = cart.items.value;
+                this.state.deleteItems = this.state.items;
             }
             this.setState(this.state);
 
         }
         private buy() {
-            if (cart.selectedCount <= 0)
+            if (shoppingCart.selectedCount <= 0)
                 return;
 
 
-            var items = cart.items.value.filter(o => o.Selected);
+            var items = this.state.items.filter(o => o.Selected);
             var productIds = items.map(o => o.ProductId);
             var quantities = items.map(o => o.Count);
 
@@ -163,19 +137,11 @@ export default function (page: Page, hideMenu: boolean = false) {
         }
         private setStateByItems(items: ShoppingCartItem[]) {
 
-            let state: ShoppingCartState = this.state || { status: 'normal', deleteItems: [] };// as ShoppingCartState;
+            let state: ShoppingCartState = this.state || { status: 'normal', deleteItems: [], items };// as ShoppingCartState;
 
             let selectItems = items.filter(o => o.Selected);
 
-            // cart.selectedCount = 0;
-            // selectItems.filter(o => o.Type == 'Given').forEach(o => state.selectedCount = state.selectedCount + o.Count);
-            // state.items = items.map(o => {
-            //     let i = o as MyShoppingCartItem;
-            //     i.InputCount = i.Count;
-            //     return i;
-            // });
-
-            items.forEach((o: MyShoppingCartItem) => o.InputCount = o.Count);
+            items.forEach((o: ShoppingCartItemExt) => o.InputCount = o.Count);
 
             state.totalAmount = 0;
             selectItems.forEach(o => {
@@ -194,13 +160,13 @@ export default function (page: Page, hideMenu: boolean = false) {
             return this.state.deleteItems.indexOf(item) >= 0;
         }
         private isCheckedAll() {
-            let items = cart.items.value;
+            let items = this.state.items;
             if (this.state.status == 'normal') {
                 let selectedItems = items.filter(o => o.Selected);
                 return selectedItems.length == items.length;
             }
 
-           return this.state.deleteItems.length == items.length;
+            return this.state.deleteItems.length == items.length;
 
         }
         private deleteConfirmText(items: ShoppingCartItem[]) {
@@ -209,8 +175,17 @@ export default function (page: Page, hideMenu: boolean = false) {
         }
 
         render() {
-            let items = cart.items.value as MyShoppingCartItem[];
-            let selectedCount = cart.selectedCount;
+            let items = this.state.items as ShoppingCartItemExt[];
+            items.forEach(o => o.InputCount = o.InputCount || o.Count);
+            let selectedCount = shoppingCart.selectedCount;
+            let total = 0;
+
+            let selectItems = items.filter(o => o.Selected);
+            let totalAmount = 0;
+            selectItems.forEach(o => {
+                totalAmount = totalAmount + o.Amount;
+            })
+
             return (
                 <div>
                     <header>
@@ -228,7 +203,7 @@ export default function (page: Page, hideMenu: boolean = false) {
                             <div className="settlement" style={{ bottom: this.props.hideMenu ? 0 : null, paddingLeft: 0 }}>
                                 <div className="pull-right">
                                     {this.state.status == 'normal' ?
-                                        <button className="btn btn-primary" onClick={() => this.buy()} disabled={cart.selectedCount == 0}>
+                                        <button className="btn btn-primary" onClick={() => this.buy()} disabled={shoppingCart.selectedCount == 0}>
                                             {selectedCount > 0 ? `结算（${selectedCount}）` : '结算'}
                                         </button>
                                         :
@@ -238,8 +213,6 @@ export default function (page: Page, hideMenu: boolean = false) {
                                                 e.onclick = ui.buttonOnClick(o => this.deleteSelectedItems(), {
                                                     confirm: this.deleteConfirmText(this.state.deleteItems)
                                                 });
-                                                // onClick={() => this.deleteSelectedItems()}
-                                                //confirm={this.deleteConfirmText(this.state.deleteItems)}
                                             }}
                                         >
                                             删除
@@ -257,7 +230,7 @@ export default function (page: Page, hideMenu: boolean = false) {
                                     </button>
                                     {this.state.status == 'normal' ?
                                         <label className="pull-right" style={{ paddingRight: 10, paddingTop: 2 }}>
-                                            总计：<span className="price">￥{this.state.totalAmount.toFixed(2)}</span>
+                                            总计：<span className="price">￥{totalAmount.toFixed(2)}</span>
                                         </label>
                                         : null
                                     }
@@ -272,7 +245,7 @@ export default function (page: Page, hideMenu: boolean = false) {
                         {items.length > 0 ?
                             <ul className="list-group">
                                 {items.map(o =>
-                                    <li key={o.Id} className="list-group-item row">
+                                    <li key={o.ProductId} className="list-group-item row">
                                         {!(o.Type == 'Given') ?
                                             <button onClick={() => this.selectItem(o)} className="pull-left icon">
                                                 <i className={this.isChecked(o) ? 'icon-ok-sign' : 'icon-circle-blank'}></i>
@@ -283,7 +256,7 @@ export default function (page: Page, hideMenu: boolean = false) {
                                                     {o.Type == 'Reduce' ? '减' : '折'}
                                                 </div>
                                                 :
-                                                <img src={o.ImageUrl} className="img-responsive" />}
+                                                <img src={imageUrl(o.ImagePath, 100)} className="img-responsive" />}
 
                                         </a>
                                         <div style={{ marginLeft: 110 }}>
@@ -321,7 +294,6 @@ export default function (page: Page, hideMenu: boolean = false) {
                                 <h4 className="text">你的购买车空空如也</h4>
                             </div>
                         }
-                        {/* <Dialog ref={(o) => this.dialog = o} /> */}
                     </section>
                 </div>
             )
@@ -331,15 +303,3 @@ export default function (page: Page, hideMenu: boolean = false) {
     ReactDOM.render(<ShoppingCartPage hideMenu={hideMenu} pageName={page.name} />, page.element);
 }
 
-// function showDialog(dialog: controls.Dialog, p: Promise<any>) {
-//     dialog.content = '正在更新'
-//     dialog.show();
-//     p.then(() => {
-//         dialog.content = '更新成功'
-//         setTimeout(() => dialog.hide(), 1000);
-//     }).catch(() => {
-
-//         dialog.content = '更新失败'
-//         setTimeout(() => dialog.hide(), 1000);
-//     })
-// }

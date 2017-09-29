@@ -3,7 +3,6 @@ import * as ui from 'ui';
 import * as services from 'services';
 import { app } from 'site';
 import FormValidator = require('core/formValidator');
-let { PageComponent, PageHeader, PageFooter, PageView, Button, DataList } = controls;
 
 export default function (page: Page) {
     let member = page.createService(services.MemberService);
@@ -13,7 +12,12 @@ export default function (page: Page) {
     let validator: FormValidator;
 
     let returnString = page.routeData.values.return || 'user_index';
-
+    //===================================
+    // 如果跳转页面为登录页面，则设为首页
+    if (returnString == 'user_login') {
+        returnString = 'home_index';
+    }
+    //===================================
     var jsx =
         <div>
             <header>

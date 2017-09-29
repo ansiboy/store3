@@ -4,7 +4,6 @@ import FormValidator = require('core/formValidator');
 import { RegionsPageRouteValues } from 'modules/user/regions';
 import * as ui from 'ui';
 
-let { PageComponent, PageHeader, PageView, Button } = controls;
 export interface ReceiptEditRouteValues {
     id?: string,
     onSaved: (receipt: ReceiptInfo) => void
@@ -30,19 +29,7 @@ export default async function (page: Page) {
                 Address: { rules: ['required'], display: '详细地址', messages: { required: '请输入详细地址' } },
                 RegionId: { rules: ['required'], display: '地区', messages: { required: '请选择地区' } },
             });
-            //  [
-            //     { name: 'Name', display: '地址名称', rules: 'required' },
-            //     { name: 'Consignee', display: '收货人', rules: 'required' },
-            //     { name: 'Mobile', display: '手机号码', rules: 'required' },
-            //     { name: 'Address', display: '详细地址', rules: 'required' },
-            //     { name: 'RegionId', display: '地区', rules: 'required' },
-            // ]
 
-            // this.validator.messages ('Name.required', '请输入地址名称');
-            // this.validator.setMessage('Consignee.required', '请输入收货人姓名');
-            // this.validator.setMessage(`Mobile.required`, '请输入手机号码');
-            // this.validator.setMessage('Address.required', '请输入详细地址');
-            // this.validator.setMessage('RegionId.required', '请选择地区');
         }
         onInputChange(event: React.FormEvent) {
             let input = event.target as HTMLInputElement;
@@ -93,11 +80,11 @@ export default async function (page: Page) {
         render() {
             let ReceiptInfo = this.state.receiptInfo;
             return (
-                <PageComponent>
-                    <PageHeader>
+                <div>
+                    <header>
                         {defaultNavBar({ title: '编辑地址' })}
-                    </PageHeader>
-                    <PageView>
+                    </header>
+                    <section>
                         <div className="container">
                             <form data-bind="with:receipt" className="form-horizontal">
                                 <div className="form-group">
@@ -206,8 +193,8 @@ export default async function (page: Page) {
                                     }}>保存</button>
                             </div>
                         </div>
-                    </PageView>
-                </PageComponent>
+                    </section>
+                </div>
             );
         }
     }

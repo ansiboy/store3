@@ -1,5 +1,5 @@
 import { Page, defaultNavBar } from 'site';
-import { UserInfo, MemberService } from 'services';
+import { MemberService } from 'services';
 import * as ui from 'ui';
 
 import FormValidator = require('core/formValidator');

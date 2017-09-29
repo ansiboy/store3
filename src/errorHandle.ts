@@ -1,8 +1,9 @@
 import { userData } from 'services';
+import * as ui from 'ui';
 
 const loadingClassName = 'loading';
 
-let isLoginPage = false;
+// let isLoginPage = false;
 export default function (app: chitu.Application, err: Error) {
 
     var currentPage = app.currentPage;
@@ -13,18 +14,13 @@ export default function (app: chitu.Application, err: Error) {
             console.log(err);
             break;
         case '601':     //601 为用户未登录异常
+            let isLoginPage = currentPage.name == 'user.login';
             if (isLoginPage) {
                 return;
             }
-            // isLoginPage = true;
             app.redirect('user_login', { return: currentPage.routeData.routeString });
-            // setTimeout(() => {
-            //     isLoginPage = false;
-            //     currentPage.close();
-            // }, 800);
             break;
         case '724':
-            //59a0d63ab58cf427f90c7d3e
             userData.userToken.value = null;
             app.redirect('user_login', { return: currentPage.routeData.routeString });
             break;

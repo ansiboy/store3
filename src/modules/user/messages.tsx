@@ -1,6 +1,5 @@
 import { Page } from 'chitu';
 import { defaultNavBar } from 'site';
-let { PageComponent, PageHeader, PageFooter, PageView, ImageBox, DataList } = controls;
 
 export default function (page: Page) {
     class MessagePage extends React.Component<{}, {}>{
@@ -9,12 +8,11 @@ export default function (page: Page) {
                 { icon: '', color: '', title: '优化促销', text: '2.20　购买禾盒果买２送一', }
             ]
             return (
-                <PageComponent>
-                    <PageHeader>
+                <div>
+                    <header>
                         {defaultNavBar({ title: '我的消息' })}
-                    </PageHeader>
-                    <PageView>
-
+                    </header>
+                    <section>
                         <ul className="list-group">
                             {messags.map(o =>
                                 <li className="list-group-item">
@@ -34,8 +32,8 @@ export default function (page: Page) {
                         </ul>
                         <h3 style={{ textAlign: 'center' }}>
                         </h3>
-                    </PageView>
-                </PageComponent>
+                    </section>
+                </div>
             )
         }
     }

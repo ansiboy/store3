@@ -28,13 +28,11 @@ export class Menu extends React.Component<{ pageName: string }, { itemsCount: nu
 
     constructor(props) {
         super(props);
-        this.state = { itemsCount: userData.productsCount.value || 0 };
-
-        this.productsCountSubscribe = (value) => {
-            this.state.itemsCount = value;
-            this.setState(this.state);
-        };
-        userData.productsCount.add(this.productsCountSubscribe)
+        let shoppingCart = (app.getPage(this.props.pageName) as Page).createService(ShoppingCartService);
+        this.state = { itemsCount: shoppingCart.productsCount || 0 };
+        shoppingCart.onChanged(this, (value) => {
+            this.state.itemsCount = shoppingCart.productsCount;
+        });
     }
     componentDidMount() {
         let menuElement = this.refs['menu'] as HTMLElement;
@@ -43,9 +41,7 @@ export class Menu extends React.Component<{ pageName: string }, { itemsCount: nu
             activeElement.className = 'active';
         }
     }
-    componentWillUnmount() {
-        userData.productsCount.remove(this.productsCountSubscribe);
-    }
+
     render() {
         return (
             <ul ref="menu" className="menu" style={{ marginBottom: '0px' }}>
@@ -177,48 +173,6 @@ export class Page extends chitu.Page {
             errorHandle(app, error);
         })
         return result;
-    }
-
-    // private showLoginPage = false;
-    // private processError(err: Error) {
-    //     if (err.name == 'HeaderRequiredExeption' && err.message.indexOf('user-id') > 0) {
-    //         // app.pages.pop();
-    //         if (this.showLoginPage) {
-    //             return;
-    //         }
-
-    //         this.showLoginPage = true;
-    //         var currentPage = app.currentPage;
-    //         app.showPage('user_login', { return: currentPage.routeData.routeString });
-    //         setTimeout(() => {
-    //             this.showLoginPage = false;
-    //             currentPage.close();
-    //         }, 800);
-    //         return;
-    //     }
-    //     let loadingElement = this.element.querySelector(`.${loadingClassName}`) as HTMLElement;
-    //     if (loadingElement) {
-    //         this.renderError();
-    //     }
-    //     else {
-    //         // alert(err.message);
-    //         ui.alert({ title: '错误', message: err.message });
-    //         console.log(err);
-    //     }
-    // }
-
-    /** 判断主视图是否为活动状态 */
-    private dataViewIsActive() {
-        // 选取主视图后面的视图，如果有显示的，则说明为非活动状态
-        let views = this.element.querySelectorAll('section[class="main"] + section');
-        for (let i = 0; i < views.length; i++) {
-            let view = views[i] as HTMLElement;
-            let display = !view.style.display || view.style.display == 'block';
-            if (display)
-                return false;
-        }
-
-        return true;
     }
 
     reload() {

@@ -2,8 +2,6 @@ import { Page, defaultNavBar, app, formatDate } from 'site';
 import { ShoppingService, AccountService } from 'services';
 import * as ui from 'ui';
 
-let { PageComponent, PageHeader, PageFooter, PageView, Dialog, Button } = controls;
-
 export default function (page: Page) {
 
     let shopping = page.createService(ShoppingService);
@@ -22,8 +20,8 @@ export default function (page: Page) {
         render() {
             let order = this.props.order;
             return (
-                <PageComponent>
-                    <PageHeader>
+                <div>
+                    <header>
                         {defaultNavBar({
                             title: '订单概况',
                             back: () => {
@@ -34,8 +32,8 @@ export default function (page: Page) {
                                 app.redirect('shopping_orderList');
                             }
                         })}
-                    </PageHeader>
-                    <PageView>
+                    </header>
+                    <section>
                         <div className="container">
                             <div className="row" style={{ paddingBottom: 10 }}>
                                 <label className="col-xs-3" style={{ paddingRight: 0 }}>订单状态</label>
@@ -83,8 +81,8 @@ export default function (page: Page) {
                                 微信支付
                             </button>
                         </div>
-                    </PageView>
-                    <PageFooter>
+                    </section>
+                    <footer>
                         {order.Status == 'WaitingForPayment' ?
                             <div className="container">
                                 <div className="form-group">
@@ -99,8 +97,8 @@ export default function (page: Page) {
                                         }}>立即支付</button>
                                 </div>
                             </div> : null}
-                    </PageFooter>
-                </PageComponent >
+                    </footer>
+                </div >
             );
         }
     }
