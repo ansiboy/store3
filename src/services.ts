@@ -12,7 +12,7 @@ let config = {
         weixin: `https://${REMOTE_HOST}/UserWeiXin/`,
         account: `https://${REMOTE_HOST}/UserAccount/`,
     },
-    appKey: '59a0d63ab58cf427f90c7d3e',// remote //'59c8e00a675d1b3414f83fc3',//
+    appKey: '59c8e00a675d1b3414f83fc3',//'59a0d63ab58cf427f90c7d3e',// remote //
     /** 调用服务接口超时时间，单位为秒 */
     ajaxTimeout: 30,
     pageSize: 10
@@ -40,6 +40,17 @@ export function imageUrl(path: string, width?: number) {
         url = url + '?width=' + width;
     }
     return url;
+}
+
+
+function guid() {
+    function s4() {
+        return Math.floor((1 + Math.random()) * 0x10000)
+            .toString(16)
+            .substring(1);
+    }
+    return s4() + s4() + '-' + s4() + '-' + s4() + '-' +
+        s4() + '-' + s4() + s4() + s4();
 }
 
 // 公用函数 模块结束
@@ -186,8 +197,6 @@ export abstract class Service {
         return this.ajaxByJSON<T>(url, data, 'put');
     }
     private ajaxByJSON<T>(url: string, data: Object, method: string) {
-
-        // data = data || {};
         let headers = {};
         headers['content-type'] = 'application/json';
         let body: any;
@@ -542,49 +551,132 @@ export class ShoppingService extends Service {
     }
 }
 
-// const SHOPPING_CART_STORAGE_NAME = 'shoppingCart';
+
 /**
- * 购买车逻辑
+ * 购物车逻辑
  * 1. 用户未登录时，数据保存在本机的 localstorage
  * 2. 用户登录后，从服务端加载购物车数据，并且和本机 localstorage 中
- * 保存的数据进行合并。然后清空 localstorage 中的数据
+ *    保存的数据进行合并。然后清空 localstorage 中的数据
+ * 3. 在外部方法使用 ShoppingCartItem 时，不要直接修改它的字段，而是通过
+ *    ShoppingCartService 类的方法修改。
  */
+type ShoppingCart = {
+    addItem: (item: ShoppingCartItem) => Promise<any>,
+    setItemCount: (itemId: string, count: number) => Promise<any>,
+    load: () => Promise<ShoppingCartItem[]>,
+    clear: () => Promise<any>,
+    selecteItem: (itemId: string) => Promise<any>,
+    unselecteItem: (itemId: string) => Promise<any>
+}
+
 export class ShoppingCartService extends Service {
     private SHOPPING_CART_STORAGE_NAME = 'shoppingCart';
     private _items: ValueStore<ShoppingCartItem[]>;
-    itemChanged: chitu.Callback<ShoppingCartService, ShoppingCartItem>;
     private isLogin: boolean;
+    private remote: ShoppingCart;
+    private local: ShoppingCart;
+    private shoppingCar: ShoppingCart;
 
     constructor() {
         super();
         this._items = new ValueStore([]);
-        this.itemChanged = chitu.Callbacks();
         let str = localStorage.getItem(this.SHOPPING_CART_STORAGE_NAME);
+
+        this.remote = {
+            addItem: (item: ShoppingCartItem) => {
+                let url = this.url("AddItem");
+                return this.post(url, { item });
+            },
+            setItemCount: (itemId: string, count: number) => {
+                let url = this.url('UpdateItem');
+                let item = { Id: itemId, Count: count } as ShoppingCartItem;
+                return this.put(url, { item });
+            },
+            load: () => {
+                let url = this.url("Get");
+                return this.get<ShoppingCartItem[]>(url);
+            },
+            clear: () => {
+                return Promise.resolve();
+            },
+            selecteItem: (itemId) => {
+                let url = this.url('UpdateItem');
+                let item = { Id: itemId, Selected: true } as ShoppingCartItem;
+                return this.put(url, { item });
+            },
+            unselecteItem: (itemId) => {
+                let url = this.url('UpdateItem');
+                let item = { Id: itemId, Selected: false } as ShoppingCartItem;
+                return this.put(url, { item });
+            }
+        };
+
+        this.local = {
+            addItem: async (item: ShoppingCartItem) => {
+                let items = await this.local.load();
+                items.push(item);
+
+                let str = JSON.stringify(items);
+                localStorage.setItem(this.SHOPPING_CART_STORAGE_NAME, str);
+                return Promise.resolve();
+            },
+            setItemCount: async (id: string, count: number) => {
+                let items = await this.local.load();
+                let item = items.filter(o => o.Id == id)[0];
+                console.assert(item != null);
+                item.Count = count;
+
+                let str = JSON.stringify(items);
+                localStorage.setItem(this.SHOPPING_CART_STORAGE_NAME, str);
+                return Promise.resolve();
+            },
+            load: () => {
+                let str = localStorage.getItem(this.SHOPPING_CART_STORAGE_NAME);
+                var items = str == null ? [] : JSON.parse(str);
+                return Promise.resolve(items);
+            },
+            clear: () => {
+                localStorage.removeItem(this.SHOPPING_CART_STORAGE_NAME);
+                return Promise.resolve();
+            },
+            selecteItem: async (itemId) => {
+                let items = await this.local.load();
+                let item = items.filter(o => o.Id == itemId)[0];
+                console.assert(item != null);
+                item.Selected = true;
+            },
+            unselecteItem: async (itemId) => {
+                let items = await this.local.load();
+                let item = items.filter(o => o.Id == itemId)[0];
+                console.assert(item != null);
+                item.Selected = false;
+            }
+        }
 
         this.isLogin = userData.userToken.value != null && userData.userToken.value != '';
         userData.userToken.add(value => {
             this.isLogin = value != null && value != '';
             //================================
             // 退出登录，清空本地数据
-            if (!this.isLogin) {
-                localStorage.removeItem(this.SHOPPING_CART_STORAGE_NAME);
-            }
+            this.local.clear();
             //================================
-        })
+            this.shoppingCar = this.isLogin ? this.remote : this.local;
+        });
 
+        this.shoppingCar = this.isLogin ? this.remote : this.local;
         this.initData();
     }
 
     private async initData() {
 
-        let localItems = this.loadLoaclItems();
+        let localItems = await this.local.load();
 
         if (!this.isLogin) {
             this._items.value = localItems;
             return;
         }
 
-        let url = this.url('ShoppingCart/Get');
+        let url = this.url('Get');
         let items = await this.get<ShoppingCartItem[]>(url)//.then(items => {
 
         for (let i = 0; i < localItems.length; i++) {
@@ -604,13 +696,13 @@ export class ShoppingCartService extends Service {
         }
     }
 
-    private url(path: string) {
-        return `${config.service.shop}${path}`;
+    private url(method: string) {
+        return `${config.service.shop}ShoppingCart/${method}`;
     }
 
     private save() {
         if (this.isLogin) {
-            let url = this.url('ShoppingCart/Save');
+            let url = this.url('Save');
             return this.post(url, { items: this._items.value })
         }
 
@@ -623,13 +715,31 @@ export class ShoppingCartService extends Service {
         return this.save();
     }
 
-    private async addItemByProduct(product: Product, count?: number) {
+    /**
+    * 设置购物车中商品数量
+    * @param product 要设置的商品 
+    * @param count 商品数量
+    */
+    async setItemCount(item: ShoppingCartItem, count: number);
+    async setItemCount(product: Product, count: number);
+    async setItemCount(item: Product | ShoppingCartItem, count: number) {
+        if ((item as ShoppingCartItem).ProductId != null)
+            return this.setItemCountByItem(item as ShoppingCartItem, count);
+
+        return this.setItemCountByProduct(item as Product, count);
+    }
+
+    private setItemCountByItem(item: ShoppingCartItem, count?: number) {
+        return this.shoppingCar.setItemCount(item.Id, count);
+    }
+    private async setItemCountByProduct(product: Product, count?: number) {
         count = count || 1;
 
         let shoppingCartItems = this._items.value;
         let shoppingCartItem = shoppingCartItems.filter(o => o.ProductId == product.Id && o.Type == null)[0];
-        if (!shoppingCartItem) {
+        if (shoppingCartItem == null) {
             shoppingCartItem = {
+                Id: guid(),
                 Amount: product.Price * count,
                 Count: count,
                 ImagePath: product.ImagePath,
@@ -638,24 +748,15 @@ export class ShoppingCartService extends Service {
                 Selected: true,
                 Price: product.Price,
             };
+            await this.shoppingCar.addItem(shoppingCartItem);
             shoppingCartItems.push(shoppingCartItem);
         }
         else {
-            shoppingCartItem.Count = shoppingCartItem.Count + count;
+            await this.shoppingCar.setItemCount(shoppingCartItem.Id, shoppingCartItem.Count);
+            shoppingCartItem.Count = count;
         }
 
-        this.itemChanged.fire(this, shoppingCartItem);
         this._items.value = shoppingCartItems;
-        return this.saveItem(shoppingCartItem);
-    }
-
-    private loadLoaclItems(): ShoppingCartItem[] {
-        let str = localStorage.getItem(this.SHOPPING_CART_STORAGE_NAME);
-        if (!str)
-            return [];
-
-        var items = JSON.parse(str);
-        return items;
     }
 
     get items() {
@@ -672,7 +773,7 @@ export class ShoppingCartService extends Service {
         }
     }
 
-    updateItem(item: ShoppingCartItem) {
+    private updateItem(item: ShoppingCartItem) {
         let product = {
             Id: item.ProductId, ImagePath: item.ImagePath,
             Price: item.Price, Name: item.Name,
@@ -698,20 +799,22 @@ export class ShoppingCartService extends Service {
         return this.saveItem(item);
     }
 
-    /**
-     * 设置购物车中商品数量
-     * @param product 要设置的商品 
-     * @param count 商品数量
-     */
-    setItemCount(product: Product, count: number) {
-        let item = this.items.value.filter(o => o.ProductId == product.Id)[0];
-        if (item) {
-            item.Count = count;
-            return this.updateItem(item);
-        }
+    selectItem(itemId: string) {
+        this.shoppingCar.selecteItem(itemId);
+        let item = this.items.value.filter(o => o.Id == itemId)[0];
+        console.assert(item != null);
 
-        return this.addItemByProduct(product, count);
+        item.Selected = true;
+        this.items.fire(this.items.value);
+    }
 
+    unselectItem(itemId: string) {
+        this.shoppingCar.selecteItem(itemId);
+        let item = this.items.value.filter(o => o.Id == itemId)[0];
+        console.assert(item != null);
+
+        item.Selected = false;
+        this.items.fire(this.items.value);
     }
 
     setItems(items: ShoppingCartItem[]) {
@@ -765,7 +868,11 @@ export class ShoppingCartService extends Service {
         this._items.value = this._items.value.filter(o => productIds.indexOf(o.ProductId) < 0);
         return this.save();
     }
+
+
 }
+
+
 
 
 export class MemberService extends Service {

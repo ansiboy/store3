@@ -1,7 +1,6 @@
 import { Page, defaultNavBar, app } from 'site';
 import { ShoppingService } from 'services';
 import { ReceiptEditRouteValues } from 'modules/user/receiptEdit';
-// let { PageComponent, PageHeader, PageView, PageFooter, Button } = controls;
 export type SetAddress = (address: string, order: Order) => void;
 export interface ReceiptListRouteValues {
     callback: SetAddress,
@@ -16,17 +15,8 @@ export default function (page: Page) {
         constructor(props) {
             super(props);
             this.state = { items: this.props.items || [] };
-            // this.setStateByItems(this.props.items || []);
         }
-        // private setStateByItems(items: ReceiptInfo[]) {
-        //     let state = {} as { items: ReceiptInfo[] };
 
-        //     state.items = items;
-        //     if (this.state == null)
-        //         this.state = state;
-        //     else
-        //         this.setState(state);
-        // }
         private detail(item: ReceiptInfo) {
             var result = `${item.ProvinceName} ${item.CityName} ${item.CountyName} ${item.Address}`;
 

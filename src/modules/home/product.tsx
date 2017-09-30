@@ -51,7 +51,7 @@ export default async function (page: Page) {
                 this.setState(this.state);
             })
 
-            shoppingCart.itemChanged.add((sender, item) => {
+            shoppingCart.onChanged(this, () => {
                 this.setState(this.state);
             })
         }

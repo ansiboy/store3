@@ -1,7 +1,5 @@
 import { Page, defaultNavBar, app, formatDate } from 'site';
 import { AccountService } from 'services';
-
-// let { PageComponent, PageHeader, PageView, Button, DataList } = controls;
 import { DataList } from 'components/dataList';
 
 export default function (page: Page) {

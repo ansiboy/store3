@@ -130,7 +130,7 @@ interface CouponCode {
 }
 
 interface ShoppingCartItem {
-    // Id?: string,
+    Id: string,
     Amount: number,
     Count: number,
     ImagePath: string,
@@ -184,12 +184,14 @@ interface BalanceDetail {
     RelatedType: string,
     Type: string
 }
+
 interface ScoreDetail {
     Score: number,
     Type: string,
     CreateDateTime: Date,
     Balance: number,
 }
+
 interface Account {
     UserId: string;
     Balance: number;
@@ -200,6 +202,7 @@ interface Province {
     Name: string
     Cities: Array<City>
 }
+
 interface City {
     Id: string,
     Name: string,

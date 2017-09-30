@@ -42,8 +42,8 @@ export default async function (page: Page, hideMenu: boolean = false) {
                 this.setState(this.state);
                 return;
             }
-            item.Selected = !item.Selected;
-            let p = shoppingCart.updateItem(item);
+
+            let p = item.Selected ? shoppingCart.unselectItem(item.Id) : shoppingCart.selectItem(item.Id);
             return p;
         }
         private deleteSelectedItems() {
@@ -63,7 +63,7 @@ export default async function (page: Page, hideMenu: boolean = false) {
             if (!count) return;
 
             item.InputCount = count;
-            shoppingCart.updateItem(item);
+            shoppingCart.setItemCount(item, count);
         }
         private onEditClick() {
             if (this.state.status == 'normal') {
