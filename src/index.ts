@@ -95,26 +95,26 @@ var modules = [
     'site'
 ];
 
-if (isUglify) {
-    modules.push('controls');
-}
-else {
-    let controlsPath = 'controls'
-    modules.push(
-        'hammer', 'bezier-easing', `${controlsPath}/common`,
-        `${controlsPath}/button`, `${controlsPath}/dataList`, `${controlsPath}/dialog`, `${controlsPath}/htmlView`,
-        `${controlsPath}/imageBox`, `${controlsPath}/indicators`, `${controlsPath}/page`, `${controlsPath}/panel`,
-        `${controlsPath}/tabs`
-    );
-}
+// if (isUglify) {
+//     modules.push('controls');
+// }
+// else {
+//     let controlsPath = 'controls'
+//     modules.push(
+//         'hammer', 'bezier-easing', `${controlsPath}/common`,
+//         `${controlsPath}/button`, `${controlsPath}/dataList`, `${controlsPath}/dialog`, `${controlsPath}/htmlView`,
+//         `${controlsPath}/imageBox`, `${controlsPath}/indicators`, `${controlsPath}/page`, `${controlsPath}/panel`,
+//         `${controlsPath}/tabs`
+//     );
+// }
 
 
-if (isBabelES5) {
+// if (isUglify) {
     requirejs(['js/polyfill'], load)
-}
-else {
-    load();
-}
+// }
+// else {
+    // load();
+// }
 function load() {
     requirejs(['react', 'react-dom'], function (React, ReactDOM) {
         window['React'] = React;

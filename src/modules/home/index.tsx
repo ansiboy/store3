@@ -95,7 +95,7 @@ export default async function (page: Page) {
                                 <div key={o.Id} className="row">
                                     <div className='col-xs-3' onClick={() => this.redirect(o)}>
                                         <img src={imageUrl(o.ImagePath, 100)} className="img-responsive" />
-                                    </div>,
+                                    </div>
                                     <div className='col-xs-9 pull-left'>
                                         <div className="name interception" onClick={() => this.redirect(o)}>{o.Name}</div>
                                         <div className="title interception">{o.Title}</div>
