@@ -1,5 +1,5 @@
 import { Page, defaultNavBar, Menu, app } from 'site';
-import { StationService, News } from 'services';
+import { StationService } from 'services';
 
 let { DataList, ImageBox, PageComponent, PageHeader, PageFooter, PageView, PullDownIndicator } = controls;
 

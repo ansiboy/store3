@@ -1,11 +1,12 @@
 import { userData } from 'services';
+import * as ui from 'ui';
 
 const loadingClassName = 'loading';
 
-let isLoginPage = false;
+// let isLoginPage = false;
 export default function (app: chitu.Application, err: Error) {
-    
-    var currentPage = app.currentPage;    
+
+    var currentPage = app.currentPage;
     switch (err.name) {
         case '600':     //600 为未知异常
         default:
@@ -13,21 +14,18 @@ export default function (app: chitu.Application, err: Error) {
             console.log(err);
             break;
         case '601':     //601 为用户未登录异常
+            let isLoginPage = currentPage.name == 'user.login';
             if (isLoginPage) {
                 return;
             }
-            isLoginPage = true;
-            app.showPage('user_login', { return: currentPage.routeData.routeString });
-            setTimeout(() => {
-                isLoginPage = false;
-                currentPage.close();
-            }, 800);
+            app.redirect('user_login', { return: currentPage.routeData.routeString });
             break;
         case '724':
-        //59a0d63ab58cf427f90c7d3e
             userData.userToken.value = null;
-            
-            app.showPage('user_login', { return: currentPage.routeData.routeString });
+            app.redirect('user_login', { return: currentPage.routeData.routeString });
+            break;
+        case '725':
+            ui.alert({ title: '错误', message: 'application-key 配置错误' });
             break;
     }
 }

@@ -1,10 +1,9 @@
 import { Page, defaultNavBar } from 'site';
-import { UserInfo, MemberService } from 'services';
+import { MemberService } from 'services';
 import * as ui from 'ui';
 import FormValidator = require('core/formValidator');
 import WizardComponent = require('modules/user/accountSecurity/wizard');
 
-let { PageComponent, PageHeader, PageFooter, PageView, ImageBox, DataList } = controls;
 export default function (page: Page) {
     class LoginPasswordPage extends React.Component<{ userInfo: UserInfo }, { step: number }>{
         private validator: FormValidator;
@@ -42,11 +41,11 @@ export default function (page: Page) {
             let userInfo = this.props.userInfo;
             let { step } = this.state;
             return (
-                <PageComponent>
-                    <PageHeader>
+                <div>
+                    <header>
                         {defaultNavBar({ title: '登录密码' })}
-                    </PageHeader>
-                    <PageView>
+                    </header>
+                    <section>
                         <WizardComponent userInfo={this.props.userInfo} ref={(e) => this.wizard = e || this.wizard}>
                             <div className="form-group" ref={(e: HTMLElement) => this.form = e ? e.parentElement : this.form}>
                                 <div className="col-xs-12">
@@ -70,8 +69,8 @@ export default function (page: Page) {
                                 </div>
                             </div>
                         </WizardComponent>
-                    </PageView>
-                </PageComponent >
+                    </section>
+                </div>
 
             );
         }

@@ -1,7 +1,6 @@
 import { Page, defaultNavBar, app, formatDate } from 'site';
-import { AccountService, ScoreDetail } from 'services';
-
-let { PageComponent, PageHeader, PageView, Button, DataList } = controls;
+import { AccountService } from 'services';
+import { DataList } from 'components/dataList';
 
 export default function (page: Page) {
     class ScroeListComponent extends React.Component<{}, {}>{
@@ -19,11 +18,11 @@ export default function (page: Page) {
         }
         render() {
             return (
-                <PageComponent>
-                    <PageHeader>
+                <div>
+                    <header>
                         {defaultNavBar({ title: '我的积分' })}
-                    </PageHeader>
-                    <PageView>
+                    </header>
+                    <section>
                         <div className="container">
                             <DataList loadData={() => this.loadData()} pageSize={10000}
                                 dataItem={(o: ScoreDetail) =>
@@ -52,8 +51,8 @@ export default function (page: Page) {
                                 } />
 
                         </div>
-                    </PageView>
-                </PageComponent>
+                    </section>
+                </div>
             );
         }
     }

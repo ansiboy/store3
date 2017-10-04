@@ -1,7 +1,8 @@
 import { Page } from 'site';
 import { defaultNavBar } from 'site';
 import { ShoppingService } from 'services';
-let { PageComponent, PageHeader, PageFooter, PageView, ImageBox, DataList, Tabs } = controls;
+import { DataList } from 'components/dataList';
+import { Tabs } from 'components/tabs';
 
 export default function (page: Page) {
     let shopping = page.createService(ShoppingService);
@@ -10,8 +11,8 @@ export default function (page: Page) {
     type Status = 'available' | 'used' | 'expired';
     let statuses: Status[] = ['available', 'used', 'expired'];
     class CouponPage extends React.Component<{}, { status: Status }>{
-        private dataView: controls.PageView;
-        private dataList: controls.DataList;
+        private dataView: HTMLElement;
+        private dataList: DataList;
 
         constructor(props) {
             super(props);
@@ -32,17 +33,17 @@ export default function (page: Page) {
         render() {
             let status = this.state.status;
             return (
-                <PageComponent>
-                    <PageHeader>
+                <div>
+                    <header>
                         {defaultNavBar({ title: '我的优惠券' })}
                         <Tabs className="tabs" defaultActiveIndex={defaultIndex} onItemClick={(index) => this.activeItem(index)}
-                            scroller={() => this.dataView.element} >
+                            scroller={() => this.dataView} >
                             {statuses.map(o => (
                                 <span key={o}>{shopping.couponStatusText(o)}</span>
                             ))}
                         </Tabs>
-                    </PageHeader>
-                    <PageView ref={o => this.dataView = o}>
+                    </header>
+                    <section ref={(o:HTMLElement) => this.dataView = o}>
                         <hr />
                         <DataList ref={o => this.dataList = o}
                             loadData={(pageIndex) => this.loadData(pageIndex, status)}
@@ -74,35 +75,11 @@ export default function (page: Page) {
                                     <h4 className="text">暂无{shopping.couponStatusText(status)}的优惠券</h4>
                                 </div>
                             } />
-                    </PageView>
-                </PageComponent>
+                    </section>
+                </div>
             )
         }
     }
 
     ReactDOM.render(<CouponPage />, page.element);
 }
-/*
-
- <div className="pull-left" style={{ position: 'relative', top: 4, left: 16, width: '100%', paddingLeft: 50 }}>
-                                            <div>{o.Title}</div>
-                                            <div style={{ paddingTop: 6 }}>
-                                                <span style={{ paddingRight: 8 }}>有效期 </span>
-                                                <span>{o.ValidBegin}</span> 至
-                                            <span>{o.ValidEnd}</span>
-                                            </div>
-                                            <div data-bind="html:Remark" style={{ paddingTop: 6 }}>
-                                            </div>
-                                        </div>
-                                        <div style={{ textAlign: 'center', position: 'absolute' }}>
-                                            <div data-bind="text:Discount + \'元\'" style={{ fontSize: 24 }}>
-                                                ￥{o.Discount.toFixed(2)}元
-                                        </div>
-                                            <div style={{ paddingLeft: 4 }}>
-                                                {shopping.couponStatusText(status)}
-                                            </div>
-                                            <div data-bind="visible:Selected" style={{ position: 'relative', top: 6 }}>
-                                                <i className="icon-ok-sign text-primary" style={{ fontSize: 26 }}></i>
-                                            </div>
-                                        </div>
-                                        <div className="clearfix"></div>*/

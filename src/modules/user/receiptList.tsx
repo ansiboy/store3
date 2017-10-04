@@ -1,7 +1,6 @@
 import { Page, defaultNavBar, app } from 'site';
 import { ShoppingService } from 'services';
 import { ReceiptEditRouteValues } from 'modules/user/receiptEdit';
-let { PageComponent, PageHeader, PageView, PageFooter, Button } = controls;
 export type SetAddress = (address: string, order: Order) => void;
 export interface ReceiptListRouteValues {
     callback: SetAddress,
@@ -16,17 +15,8 @@ export default function (page: Page) {
         constructor(props) {
             super(props);
             this.state = { items: this.props.items || [] };
-            // this.setStateByItems(this.props.items || []);
         }
-        // private setStateByItems(items: ReceiptInfo[]) {
-        //     let state = {} as { items: ReceiptInfo[] };
 
-        //     state.items = items;
-        //     if (this.state == null)
-        //         this.state = state;
-        //     else
-        //         this.setState(state);
-        // }
         private detail(item: ReceiptInfo) {
             var result = `${item.ProvinceName} ${item.CityName} ${item.CountyName} ${item.Address}`;
 
@@ -93,11 +83,11 @@ export default function (page: Page) {
             this.state.items.filter(o => o.IsDefault).forEach((o) => items.push(o));
             this.state.items.filter(o => !o.IsDefault).forEach((o) => items.push(o));
             return (
-                <PageComponent>
-                    <PageHeader>
+                <div>
+                    <header>
                         {defaultNavBar({ title: routeValue.callback ? '选择收货地址' : '收货地址' })}
-                    </PageHeader>
-                    <PageView>
+                    </header>
+                    <section>
                         <div>
                             {items.map(receipt => (
                                 <div key={receipt.Id} style={{ marginBottom: 14 }}>
@@ -127,11 +117,16 @@ export default function (page: Page) {
                                                     <span className="icon-pencil" style={{ fontSize: 20 }}></span>
                                                     <span style={{ marginLeft: 4 }}>编辑</span>
                                                 </a>
-                                                <Button onClick={() => this.deleteReceipt(receipt)} confirm={"你删除该收货地址吗？"}
+                                                <button
+                                                    ref={(e: HTMLButtonElement) => {
+                                                        if (!e) return;
+                                                        e.onclick = ui.buttonOnClick(() => this.deleteReceipt(receipt),
+                                                            { confirm: '你删除该收货地址吗？' })
+                                                    }}
                                                     style={{ marginLeft: 12, border: 'none', background: 'none' }}>
                                                     <span className="icon-remove" style={{ fontSize: 20 }}></span>
                                                     <span style={{ marginLeft: 4 }}>删除</span>
-                                                </Button>
+                                                </button>
                                             </div>
                                         </div>
                                         <div className="clearfix"></div>
@@ -149,8 +144,8 @@ export default function (page: Page) {
                                 </div> : null}
                         </div>
 
-                    </PageView>
-                    <PageFooter>
+                    </section>
+                    <footer>
                         <div className="container navbar-fixed-bottom">
                             <div className="form-group">
                                 <button onClick={() => this.newReceipt()} className="btn btn-primary btn-block">
@@ -158,8 +153,8 @@ export default function (page: Page) {
                                 </button>
                             </div>
                         </div>
-                    </PageFooter>
-                </PageComponent>
+                    </footer>
+                </div>
             );
         }
     }

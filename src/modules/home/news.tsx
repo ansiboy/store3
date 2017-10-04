@@ -1,5 +1,5 @@
 import { Page, Menu, defaultNavBar } from 'site';
-import { StationService, News } from 'services';
+import { StationService } from 'services';
 import * as site from 'site';
 
 let { PageComponent, PageHeader, PageFooter, PageView, HtmlView } = controls;
@@ -15,11 +15,11 @@ export default function (page: Page) {
         render() {
             let news = this.props.news;
             return (
-                <PageComponent>
-                    <PageHeader>
+                <div>
+                    <header>
                         {defaultNavBar({ title: '资讯详情' })}
-                    </PageHeader>
-                    <PageView>
+                    </header>
+                    <section>
                         <div className="container">
                             <h2>{news.Title}</h2>
                             <div className="small">
@@ -27,8 +27,8 @@ export default function (page: Page) {
                             </div>
                             <HtmlView content={news.Content} />
                         </div>
-                    </PageView>
-                </PageComponent>
+                    </section>
+                </div>
             );
         }
     }

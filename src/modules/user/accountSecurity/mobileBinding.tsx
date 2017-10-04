@@ -1,11 +1,11 @@
 import { Page, defaultNavBar } from 'site';
-import { UserInfo, MemberService } from 'services';
+import { MemberService } from 'services';
 import * as ui from 'ui';
 import FormValidator = require('core/formValidator');
 import WizardComponent = require('modules/user/accountSecurity/wizard');
 import VerifyCodeButton = require('components/verifyCodeButton');
 
-let { PageComponent, PageHeader, PageFooter, PageView, ImageBox, DataList } = controls;
+// let { PageComponent, PageHeader, PageFooter, PageView, ImageBox, DataList } = controls;
 export interface MobileBindingPageArguments {
     mobileChanged: (mobile: string) => void
 }
@@ -38,11 +38,11 @@ export default function (page: Page) {
         }
         render() {
             return (
-                <PageComponent>
-                    <PageHeader>
+                <div>
+                    <header>
                         {defaultNavBar({ title: '手机绑定' })}
-                    </PageHeader>
-                    <PageView>
+                    </header>
+                    <section>
                         <WizardComponent userInfo={this.props.userInfo}>
                             <div className="form-group">
                                 <div className="col-xs-12">
@@ -72,8 +72,8 @@ export default function (page: Page) {
                                 </div>
                             </div>
                         </WizardComponent>
-                    </PageView>
-                </PageComponent>
+                    </section>
+                </div>
             );
         }
     }

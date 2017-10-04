@@ -1,9 +1,11 @@
 import { Page, defaultNavBar } from 'site';
-import { ShoppingService } from 'services';
+import { ShoppingService, imageUrl } from 'services';
 import { app } from 'site';
 
-let { PageComponent, PageHeader, PageFooter, PageView, DataList, ImageBox, Tabs, Button } = controls;
-type DataList = controls.DataList;
+// let { PageComponent, PageHeader, PageFooter, PageView, DataList, ImageBox, Tabs, Button } = controls;
+// type DataList = controls.DataList;
+import { DataList } from 'components/dataList';
+import { Tabs } from 'components/tabs';
 
 export default function (page: Page) {
 
@@ -19,7 +21,7 @@ export default function (page: Page) {
 
     class OrderListView extends React.Component<{}, { activeIndex: number }>{
 
-        private dataView: controls.PageView;
+        private dataView: HTMLElement;
         private dataList: DataList;
 
         constructor(props) {
@@ -72,8 +74,12 @@ export default function (page: Page) {
                     control = <a href={`#shopping_purchase?id=${order.Id}`} className={btnClassName}>立即付款</a>
                     break;
                 case 'Send':
-                    control = <Button className={btnClassName} onClick={() => this.confirmReceived()}
-                        confirm={'你确定收到货了吗？'}>确认收货</Button>;
+                    control = <button className={btnClassName} onClick={() => this.confirmReceived()}
+                        ref={(e: HTMLButtonElement) => {
+                            if (!e) return;
+                            e.onclick = ui.buttonOnClick(() => this.confirmReceived(), { confirm: '你确定收到货了吗？' });
+                        }}
+                    >确认收货</button>;
                     break;
                 case 'ToEvaluate':
                     control = <a href={'#shopping_evaluation'} className={btnClassName}>评价晒单</a>;
@@ -97,17 +103,17 @@ export default function (page: Page) {
         }
         render() {
             return (
-                <PageComponent>
-                    <PageHeader>
+                <div>
+                    <header>
                         {defaultNavBar({ title: '我的订单', back: () => app.redirect('user_index') })}
                         <Tabs className="tabs" defaultActiveIndex={defaultActiveIndex} onItemClick={(index) => this.activeItem(index)}
-                            scroller={() => this.dataView.element} >
+                            scroller={() => this.dataView} >
                             <span>全部</span>
                             <span>待付款</span>
                             <span>待收货</span>
                         </Tabs>
-                    </PageHeader>
-                    <PageView ref={o => this.dataView = o}>
+                    </header>
+                    <section ref={(o: HTMLElement) => this.dataView = o}>
                         <DataList ref={o => this.dataList = o} loadData={(pageIndex) => this.loadData(pageIndex)}
                             dataItem={(o: Order) => (
                                 <div key={o.Id} className="order-item">
@@ -124,7 +130,7 @@ export default function (page: Page) {
                                         <ul>
                                             {o.OrderDetails.map((c, i) => (
                                                 <li key={i}>
-                                                    <ImageBox src={c.ImageUrl} className="img-responsive img-thumbnail img-full" />
+                                                    <img src={imageUrl(c.ImageUrl)} className="img-responsive img-thumbnail img-full" />
                                                 </li>
                                             ))}
                                         </ul>
@@ -155,8 +161,8 @@ export default function (page: Page) {
                                     <h4 className="text">暂无此类订单</h4>
                                 </div>
                             } />
-                    </PageView>
-                </PageComponent>
+                    </section>
+                </div>
             );
         }
     }

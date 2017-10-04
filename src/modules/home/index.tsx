@@ -1,11 +1,10 @@
 import { Page, Menu, app } from 'site';
 import { StationService, ShoppingCartService, ShoppingService, imageUrl } from 'services';
-// let { PageComponent, PageHeader, PageFooter, PageView, ImageBox, DataList, createHammerManager } = controls;
 import Carousel = require('core/carousel');
 import Hammer = require('hammer');
 import * as ui from 'ui';
 
-interface MyHomeProduct extends HomeProduct {
+interface ProductExt extends Product {
     Count: number;
 }
 
@@ -13,8 +12,17 @@ interface MyHomeProduct extends HomeProduct {
 export default async function (page: Page) {
     let station = page.createService(StationService);
     let shoppingCart = page.createService(ShoppingCartService);
+    let shop = page.createService(ShoppingService);
 
-    class IndexPage extends React.Component<{ products: MyHomeProduct[] }, {}>{
+    interface IndexPageStatus {
+        shoppingCartItems: ShoppingCartItem[]
+    }
+
+    interface IndexPageProps {
+        products: ProductExt[]
+    }
+
+    class IndexPage extends React.Component<IndexPageProps, IndexPageStatus>{
 
         private dataView: HTMLElement;
         private header: HTMLElement;
@@ -22,51 +30,53 @@ export default async function (page: Page) {
         constructor(props) {
             super(props);
 
-            this.state = {};
+            this.state = { shoppingCartItems: shoppingCart.items.value };
+            // shoppingCart.itemChanged.add(() => {
+
+            //     debugger;
+            // });
+            shoppingCart.onChanged(this, (value) => {
+                this.state.shoppingCartItems = value;
+                this.setState(this.state);
+            })
         }
 
-        private async loadData(pageIndex): Promise<MyHomeProduct[]> {
+        private async loadData(pageIndex): Promise<ProductExt[]> {
             let products = await station.proudcts(pageIndex);
-            return products as MyHomeProduct[];
+            return products as ProductExt[];
         }
 
         protected componentDidMount() {
         }
 
-        addToShoppingCart(product: MyHomeProduct) {
+        addToShoppingCart(product: ProductExt) {
             product.Count = (product.Count || 0) + 1;
+            shoppingCart.setItemCount(product, product.Count);
             this.setState(this.state);
         }
 
-        removeFormShoppingCart(product: MyHomeProduct) {
+        removeFormShoppingCart(product: ProductExt) {
             if (product.Count < 1)
                 return;
 
             product.Count = (product.Count || 0) - 1;
+            shoppingCart.setItemCount(product, product.Count);
             this.setState(this.state);
         }
 
-        redirect(o: HomeProduct) {
-            location.hash = `#home_product?id=${o.ProductId}`;
+        redirect(o: Product) {
+            location.hash = `#home_product?id=${o.Id}`;
             return;
         }
 
         settlement() {
-            let products = this.props.products.filter(o => o.Count);
-            let productIds = products.map(o => o.ProductId);
-            let counts = products.map(o => o.Count);
-            return shoppingCart.addItems(productIds, counts).then(() => this.buy());
-        }
-
-        buy() {
             var items = this.props.products.filter(o => o.Count);
             if (items.length <= 0)
                 return;
 
-            var productIds = items.map(o => o.ProductId);
+            var productIds = items.map(o => o.Id);
             var quantities = items.map(o => o.Count);
 
-            let shop = new ShoppingService();
             let result = shop.createOrder(productIds, quantities)
                 .then((order) => {
                     app.redirect(`shopping_orderProducts?id=${order.Id}`)
@@ -77,13 +87,18 @@ export default async function (page: Page) {
 
         render() {
             let products = this.props.products;
+            let shoppingCartItems = this.state.shoppingCartItems;
+            products.forEach(o => {
+                o.Count = shoppingCartItems.filter(p => p.ProductId == o.Id).map(o => o.Count)[0] || 0;
+            })
+
             let count = 0;
             let total = 0;
-            products.filter(o => o.Count).forEach(o => {
+            shoppingCartItems.filter(o=>o.Count).filter(o=>{
                 count = count + o.Count;
                 total = total + o.Price * o.Count;
-            });
-
+            })
+            
             return (
                 <div className="page">
                     <section className="main">
@@ -101,25 +116,26 @@ export default async function (page: Page) {
                                         <div className="title interception">{o.Title}</div>
                                         <div className="select">
                                             <div className='pull-left price'>￥{o.Price.toFixed(2)}</div>
-                                            <div className='pull-right'>
-                                                {!o.Count ?
+                                            <div className='pull-right' style={{ height: 28 }}>
+                                                <div style={{ display: o.Count == 0 ? 'block' : 'none' }}>
                                                     <button className='btn-link'
                                                         ref={(e: HTMLButtonElement) => e ? e.onclick = () => this.addToShoppingCart(o) : null}>
                                                         <i className='icon-shopping-cart' />
-                                                    </button> :
-                                                    <div>
-                                                        <i className="icon-minus-sign text-primary" onClick={() => this.removeFormShoppingCart(o)} />
-                                                        <input className="number" type="number" value={o.Count as any}
-                                                            onChange={(e) => {
-                                                                let value = Number.parseInt((e.target as HTMLInputElement).value);
-                                                                if (!value) return;
+                                                    </button>
+                                                </div>
+                                                <div style={{ display: o.Count > 0 ? 'block' : 'none' }}>
+                                                    <i className="icon-minus-sign text-primary" onClick={() => this.removeFormShoppingCart(o)} />
+                                                    <input className="number" type="number" value={o.Count as any}
+                                                        onChange={(e) => {
+                                                            let value = Number.parseInt((e.target as HTMLInputElement).value);
+                                                            if (!value) return;
 
-                                                                o.Count = value;
-                                                                this.setState(this.state);
-                                                            }} />
-                                                        <i className="icon-plus-sign text-primary" onClick={() => this.addToShoppingCart(o)} />
-                                                    </div>
-                                                }
+                                                            o.Count = value;
+                                                            this.setState(this.state);
+                                                        }} />
+                                                    <i className="icon-plus-sign text-primary" onClick={() => this.addToShoppingCart(o)} />
+                                                </div>
+                                                {/* } */}
                                             </div>
                                         </div>
                                     </div>
@@ -131,7 +147,7 @@ export default async function (page: Page) {
                     <footer>
                         <div className="settlement">
                             <div className="pull-left">
-                                <i className="icon-shopping-cart" />
+                                <i className="icon-shopping-cart" onClick={() => app.redirect('shopping_shoppingCartNoMenu')} />
                                 {count ? <span className="badge bg-primary">{count}</span> : null}
                             </div>
                             <div className="pull-right">
@@ -151,7 +167,17 @@ export default async function (page: Page) {
         }
     }
 
-    let products = await station.proudcts() as MyHomeProduct[];
+    let shoppingCartItems: ShoppingCartItem[];
+    // let products = await Promise.all([station.proudcts(), shoppingCart.getItems()])
+    //     .then(data => {
+    //         let products = data[0] as ProductExt[];
+    //         shoppingCartItems = data[1];
+    //         products.forEach(o => {
+    //             o.Count = shoppingCartItems.filter(p => p.ProductId == o.Id).map(o => o.Count)[0] || 0;
+    //         })
+    //         return products;
+    //     })
+    let products = await station.proudcts() as ProductExt[];
 
     ReactDOM.render(<IndexPage products={products} />, page.element);
 }

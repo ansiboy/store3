@@ -1,84 +1,10 @@
 import { Page, defaultNavBar, app } from 'site';
-import { ShoppingService, MemberService, UserInfo } from 'services';
+import { ShoppingService, MemberService } from 'services';
 import * as ui from 'ui';
-// let { PageComponent, PageHeader, PageView, Button, DataList, PageFooter, ImageBox } = controls;
 
 export default async function (page: Page) {
     let member = page.createService(MemberService);
     let userInfo = await member.userInfo();
-
-
-    // class GenderSelector extends React.Component<React.Props<GenderSelector> & { value: string },
-    //     { value: string }>{
-
-    //     private element: HTMLElement;
-    //     valueChanged: (value: string) => void;
-
-    //     static male = 'male';
-    //     static female = 'female';
-
-    //     constructor(props) {
-    //         super(props);
-    //         this.state = { value: this.props.value };
-    //     }
-
-    //     private changeValue(value: string) {
-    //         this.state.value = value;
-    //         this.setState(this.state);
-    //         if (this.valueChanged != null) {
-    //             this.valueChanged(value)
-    //         }
-    //     }
-    //     show() {
-    //         this.element.style.removeProperty('display');
-    //     }
-    //     hide() {
-    //         this.element.style.display = 'none';
-    //     }
-    //     render() {
-    //         let value = this.state.value;
-
-    //         let { male, female } = GenderSelector;
-
-    //         return (
-    //             <div ref={(o: HTMLElement) => this.element = this.element || o} style={{ display: 'none' }}>
-    //                 <div className="modal fade in" style={{ display: 'block' }}
-    //                     onClick={() => { this.hide(); }}>
-    //                     <div className="list-group " style={{ position: 'absolute', bottom: 0, width: '100%' }}
-    //                         onClick={(e) => {
-    //                             e.stopPropagation();
-    //                         }}>
-    //                         <div className="list-group-item">
-    //                             <span style={{ fontWeight: '700' }}>请选择性别</span>
-    //                             <i className="icon-remove pull-right" onClick={() => this.hide()}>
-    //                             </i>
-    //                         </div>
-    //                         <div className="list-group-item"
-    //                             onClick={() => {
-    //                                 this.changeValue(male);
-    //                                 setTimeout(() => this.hide(), 200);
-    //                             }}>
-    //                             <span>男</span>
-    //                             <i className="pull-right icon-ok"
-    //                                 style={{ display: value == male ? 'block' : 'none' }} />
-    //                         </div>
-    //                         <div className="list-group-item"
-    //                             onClick={() => {
-    //                                 this.changeValue(female);
-    //                                 setTimeout(() => this.hide(), 200);
-    //                             }}>
-    //                             <span>女</span>
-    //                             <i className="pull-right icon-ok"
-    //                                 style={{ display: value == female ? 'block' : 'none' }} />
-    //                         </div>
-    //                     </div>
-    //                 </div>
-    //                 <div className="modal-backdrop fade in" />
-    //             </div>
-    //         );
-    //     }
-    // }
-
 
     type ValueSelectorValueType = string | number | Date;
     type ValueSelectorItem = { name: string, value: ValueSelectorValueType };
@@ -117,8 +43,6 @@ export default async function (page: Page) {
         }
         render() {
             let value = this.state.value;
-
-            // let { male, female } = GenderSelector;
             let items = this.props.items;
             let title = this.props.title || '';
 

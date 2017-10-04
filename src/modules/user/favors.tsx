@@ -1,9 +1,7 @@
 import { Page, defaultNavBar } from 'site';
 import { ShoppingService } from 'services';
 import { app } from 'site';
-
-let { PageComponent, PageHeader, PageFooter, PageView, DataList, ImageBox } = controls;
-
+import { DataList } from 'components/dataList';
 
 export default function (page: Page) {
     let shop = page.createService(ShoppingService);
@@ -41,16 +39,16 @@ export default function (page: Page) {
         }
         render() {
             return (
-                <PageComponent>
-                    <PageHeader>
+                <div>
+                    <header>
                         {defaultNavBar({ title: '我的收藏' })}
-                    </PageHeader>
-                    <PageView ref={o => o ? this.dataView = o.element : null}>
+                    </header>
+                    <section ref={(o: HTMLElement) => o ? this.dataView = o : null}>
                         <DataList className="container" loadData={this.loadFavorProducts} dataItem={(o: FavorProduct) => (
                             <div key={o.ProductId}>
                                 <div className="item row">
                                     <div onClick={() => this.showProduct(o.ProductId)} className="col-xs-4">
-                                        <ImageBox src={o.ImageUrl} className="img-responsive" />
+                                        <img src={o.ImageUrl} className="img-responsive" />
                                     </div>
                                     <div className="col-xs-8">
                                         <div onClick={() => this.showProduct(o.ProductId)} className="name">
@@ -77,8 +75,8 @@ export default function (page: Page) {
                                     <h4 className="text">你还没有添加收藏哦</h4>
                                 </div>
                             } />
-                    </PageView>
-                </PageComponent>
+                    </section>
+                </div>
             );
         }
     }

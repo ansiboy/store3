@@ -1,5 +1,4 @@
 import { Page, defaultNavBar, app } from 'site';
-let { PageComponent, PageHeader, PageFooter, PageView, Button, DataList } = controls;
 import FormValidator = require('core/formValidator');
 import * as services from 'services';
 import * as ui from 'ui';
@@ -71,12 +70,11 @@ export default function (page: Page) {
         }
         render() {
             return (
-                <PageComponent>
-                    <PageHeader>
+                <div>
+                    <header>
                         {defaultNavBar({ title: "登录密码" })}
-                    </PageHeader>
-                    <PageFooter></PageFooter>
-                    <PageView>
+                    </header>
+                    <section>
                         <div className="container">
                             <form className="form-horizontal"
                                 ref={(o: HTMLFormElement) => this.formElement = o || this.formElement}>
@@ -128,8 +126,8 @@ export default function (page: Page) {
                                 </div>
                             </form>
                         </div>
-                    </PageView>
-                </PageComponent>
+                    </section>
+                </div>
             );
 
         }
