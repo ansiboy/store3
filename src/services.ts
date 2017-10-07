@@ -588,6 +588,10 @@ export class ShoppingCartService extends Service {
                 return this.post(url, { item });
             },
             setItemCount: (itemId: string, count: number) => {
+                if (count <= 0) {
+                    let url = this.url('RemoveItem');
+                    return this.delete(url, { itemId });
+                }
                 let url = this.url('UpdateItem');
                 let item = { Id: itemId, Count: count } as ShoppingCartItem;
                 return this.put(url, { item });
@@ -711,10 +715,6 @@ export class ShoppingCartService extends Service {
         return Promise.resolve();
     }
 
-    private saveItem(item: ShoppingCartItem) {
-        return this.save();
-    }
-
     /**
     * 设置购物车中商品数量
     * @param product 要设置的商品 
@@ -729,12 +729,14 @@ export class ShoppingCartService extends Service {
         return this.setItemCountByProduct(item as Product, count);
     }
 
-    private setItemCountByItem(item: ShoppingCartItem, count?: number) {
-        return this.shoppingCar.setItemCount(item.Id, count);
+    private async setItemCountByItem(item: ShoppingCartItem, count: number) {
+        await this.shoppingCar.setItemCount(item.Id, count);
+        var shoopingCartItem = this.items.value.filter(o => o.Id == item.Id)[0];
+        console.assert(shoopingCartItem != null);
+        shoopingCartItem.Count = count;
+        this.items.fire(this.items.value);
     }
-    private async setItemCountByProduct(product: Product, count?: number) {
-        count = count || 1;
-
+    private async setItemCountByProduct(product: Product, count: number) {
         let shoppingCartItems = this._items.value;
         let shoppingCartItem = shoppingCartItems.filter(o => o.ProductId == product.Id && o.Type == null)[0];
         if (shoppingCartItem == null) {
@@ -752,7 +754,7 @@ export class ShoppingCartService extends Service {
             shoppingCartItems.push(shoppingCartItem);
         }
         else {
-            await this.shoppingCar.setItemCount(shoppingCartItem.Id, shoppingCartItem.Count);
+            await this.shoppingCar.setItemCount(shoppingCartItem.Id, count);
             shoppingCartItem.Count = count;
         }
 
@@ -773,32 +775,6 @@ export class ShoppingCartService extends Service {
         }
     }
 
-    private updateItem(item: ShoppingCartItem) {
-        let product = {
-            Id: item.ProductId, ImagePath: item.ImagePath,
-            Price: item.Price, Name: item.Name,
-
-        } as Product;
-
-        var shoppingCartItems = this.items.value;
-        let itemIndex: number;// = this.items.value.filter(o=>o.Id == item.Id);
-        shoppingCartItems.forEach((o, i) => {
-            if (o.ProductId == item.ProductId) {
-                itemIndex = i;
-                return;
-            }
-        })
-
-        if (itemIndex != null)
-            shoppingCartItems[itemIndex] = item;
-        else
-            shoppingCartItems.push(item);
-
-        this.items.value = shoppingCartItems;
-
-        return this.saveItem(item);
-    }
-
     selectItem(itemId: string) {
         this.shoppingCar.selecteItem(itemId);
         let item = this.items.value.filter(o => o.Id == itemId)[0];
@@ -817,10 +793,10 @@ export class ShoppingCartService extends Service {
         this.items.fire(this.items.value);
     }
 
-    setItems(items: ShoppingCartItem[]) {
+    setItemsCount(items: ShoppingCartItem[], counts) {
         let promises = new Array<Promise<any>>();
         for (let i = 0; i < items.length; i++) {
-            let p = this.updateItem(items[i]);
+            let p = this.setItemCount(items[i], counts[i]);
             promises.push(p)
         }
 
@@ -833,16 +809,14 @@ export class ShoppingCartService extends Service {
             shoppingCartItems[i].Selected = true;
         }
         this._items.value = shoppingCartItems;
-        this.save();
-        return Promise.resolve();
+        return this.save();
     }
 
     unselectAll() {
         let shoppingCartItems = this._items.value;
         shoppingCartItems.forEach(o => o.Selected = false);
         this._items.value = shoppingCartItems;
-        this.save();
-        return Promise.resolve();
+        return this.save();
     }
 
     removeAll() {
