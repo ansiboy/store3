@@ -63,7 +63,7 @@ export default async function (page: Page, hideMenu: boolean = false) {
             if (!count) return;
 
             item.InputCount = count;
-            shoppingCart.setItemCount(item, count);
+            this.setState(this.state);
         }
         private onEditClick() {
             if (this.state.status == 'normal') {
@@ -73,19 +73,11 @@ export default async function (page: Page, hideMenu: boolean = false) {
             }
 
             let shoppingCartItems = new Array<ShoppingCartItem>();
-            let counts = new Array<number>();
+            let items = this.state.items as ShoppingCartItemExt[];
+            let changeItems = items.filter(o => o.InputCount != o.Count);
+            let counts = changeItems.map(o => o.InputCount);
 
-            let items = this.state.items;
-            for (let i = 0; i < items.length; i++) {
-                let item = items[i] as ShoppingCartItemExt;
-                if (item.InputCount != null && item.InputCount != item.Count) {
-                    item.Count = item.InputCount;
-                    shoppingCartItems.push(item);
-                }
-            }
-
-
-            let result: Promise<any> = shoppingCart.setItems(shoppingCartItems);
+            let result: Promise<any> = shoppingCart.setItemsCount(changeItems, counts);
             result.then(o => {
                 this.state.status = 'normal';
                 this.setState(this.state);
@@ -103,9 +95,9 @@ export default async function (page: Page, hideMenu: boolean = false) {
                     p = shoppingCart.selectAll();
                 }
 
-                p.then((items) => {
-                    this.setStateByItems(items);
-                })
+                // p.then((items) => {
+                //     this.setStateByItems(items);
+                // })
 
                 return p;
             }
@@ -134,24 +126,6 @@ export default async function (page: Page, hideMenu: boolean = false) {
                 })
 
             return result;
-        }
-        private setStateByItems(items: ShoppingCartItem[]) {
-
-            let state: ShoppingCartState = this.state || { status: 'normal', deleteItems: [], items };// as ShoppingCartState;
-
-            let selectItems = items.filter(o => o.Selected);
-
-            items.forEach((o: ShoppingCartItemExt) => o.InputCount = o.Count);
-
-            state.totalAmount = 0;
-            selectItems.forEach(o => {
-                state.totalAmount = state.totalAmount + o.Amount;
-            })
-
-            if (this.state == null)
-                this.state = state;
-            else
-                this.setState(state);
         }
         private isChecked(item: ShoppingCartItem) {
             if (this.state.status == 'normal') {

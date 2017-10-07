@@ -31,10 +31,6 @@ export default async function (page: Page) {
             super(props);
 
             this.state = { shoppingCartItems: shoppingCart.items.value };
-            // shoppingCart.itemChanged.add(() => {
-
-            //     debugger;
-            // });
             shoppingCart.onChanged(this, (value) => {
                 this.state.shoppingCartItems = value;
                 this.setState(this.state);
@@ -52,7 +48,7 @@ export default async function (page: Page) {
         addToShoppingCart(product: ProductExt) {
             product.Count = (product.Count || 0) + 1;
             shoppingCart.setItemCount(product, product.Count);
-            this.setState(this.state);
+            // this.setState(this.state);
         }
 
         removeFormShoppingCart(product: ProductExt) {
@@ -61,7 +57,7 @@ export default async function (page: Page) {
 
             product.Count = (product.Count || 0) - 1;
             shoppingCart.setItemCount(product, product.Count);
-            this.setState(this.state);
+            // this.setState(this.state);
         }
 
         redirect(o: Product) {
