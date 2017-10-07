@@ -109,12 +109,12 @@ var modules = [
 // }
 
 
-if (isBabelES5) {
+// if (isUglify) {
     requirejs(['js/polyfill'], load)
-}
-else {
-    load();
-}
+// }
+// else {
+    // load();
+// }
 function load() {
     requirejs(['react', 'react-dom'], function (React, ReactDOM) {
         window['React'] = React;

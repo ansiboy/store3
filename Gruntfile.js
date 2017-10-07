@@ -52,7 +52,7 @@ module.exports = function (grunt) {
                         expand: true,
                         cwd: `src/js`,
                         src: `*.js`,
-                        dest: `out/www/js`
+                        dest: `out/es5/js`
                     },
                     {
                         expand: true,
