@@ -1,7 +1,21 @@
+declare interface jweixin {
+    config(value);
+    ready(callback: Function)
+    error(callback: (res: { errMsg: string }) => void)
+    onMenuShareTimeline(value)
+    onMenuShareAppMessage(value)
+    getLocation(args: {
+        type: 'wgs84',
+        success: (res: {
+            latitude: number,
+            longitude: number,
+            speed: number,
+            accuracy: number
+        }) => void,
+        fail(err)
+    });
+}
+
 declare module "jweixin" {
-    function config(value);
-    function ready(callback: Function)
-    function error(callback: Function)
-    function onMenuShareTimeline(value)
-    function onMenuShareAppMessage(value)
+    export = jweixin;
 }

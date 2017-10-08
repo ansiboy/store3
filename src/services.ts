@@ -996,15 +996,110 @@ export class AccountService extends Service {
     }
 }
 
+function createWeixinClient() {
+    return new Promise<jweixin>((resolve, reject) => {
+        let weixin = new WeiXinService();
+        var config = {
+            debug: false,
+            nonceStr: 'mystore',
+            jsApiList: ['onMenuShareTimeline', 'onMenuShareAppMessage', 'getLocation']
+        };
+
+        requirejs(['jweixin'], function (wx: jweixin) {
+            var url = encodeURIComponent(location.href.split('#')[0]);
+            weixin.jsSignature(config.nonceStr, url).then(function (obj) {
+                config = Object.assign(config, obj);
+                wx.config(config);
+                wx.ready(function () {
+                    resolve(wx);
+                });
+                wx.error((res) => {
+                    let error = new Error();
+                    error.message = res.errMsg;
+                    reject(error);
+                });
+            });
+        }, function (err) {
+            reject(err);
+        })
+    })
+
+
+}
+
 export class LocationService extends Service {
     private url(path: string) {
         return `${config.service.shop}${path}`;
     }
 
-    getLocation = (data) => {
-        return this.get<Province[]>("http://restapi.amap.com/v3/ip", data).then(function (result) {
-            return result;
-        });
+    async coordinate(): Promise<{ lat: number, lon: number }> {
+        return new Promise<{ lat: number, lon: number }>(async (resolve, reject) => {
+            var ua = navigator.userAgent.toLowerCase();
+            let isWeixin = (ua.match(/MicroMessenger/i) as any) == 'micromessenger';
+            if (isWeixin) {
+                let wx = await createWeixinClient();
+                wx.getLocation({
+                    type: 'wgs84', // 默认为wgs84的gps坐标，如果要返回直接给openLocation用的火星坐标，可传入'gcj02'
+                    success: function (res) {
+                        var latitude = res.latitude; // 纬度，浮点数，范围为90 ~ -90
+                        var longitude = res.longitude; // 经度，浮点数，范围为180 ~ -180。
+                        var speed = res.speed; // 速度，以米/每秒计
+                        var accuracy = res.accuracy; // 位置精度
+                        resolve({ lat: latitude, lon: longitude });
+                    },
+                    fail(err) {
+                        reject(err);
+                    }
+                });
+            }
+            else if (location.protocol == 'https:') {
+                navigator.geolocation.getCurrentPosition(
+                    (args) => {
+                        let lon = args.coords.longitude;    // 经度
+                        let lat = args.coords.latitude;     // 纬度
+                        resolve({ lat, lon });
+                    },
+                    (err) => {
+                        let error = new Error();
+                        error.message =
+                            err.code == 1 ? '位置服务被拒绝' :
+                                err.code == 2 ? '暂时获取不到位置信息' :
+                                    err.code == 3 ? '获取信息超时' :
+                                        '未知错误';
+                        error.name = `geolocationError code:${err.code}`;
+                        reject(error)
+                    }
+                )
+            }
+            else {
+                let err = new Error();
+                err.message = '暂时获取不到位置信息';
+                reject(err);
+            }
+        })
+    }
+
+
+    async address(): Promise<string> {
+        return new Promise<string>(async (resolve, reject) => {
+            try {
+                let coordinate = await this.coordinate();
+                let { lon, lat } = coordinate;
+                var pt = new BMap.Point(lon, lat);
+                var geoc = new BMap.Geocoder();
+                var convertor = new BMap.Convertor();
+                convertor.translate([pt], 1, 5, (rs) => {
+                    geoc.getLocation(rs.points[0], (rs) => {
+                        resolve(rs.address);
+                    });
+                });
+            }
+            catch (err) {
+                let error = err as Error;
+                resolve(error.message);
+            }
+        })
+
     }
     getProvinces = () => {
         return this.get<Province[]>(this.url('Address/GetProvinces')).then(function (result) {
@@ -1029,7 +1124,8 @@ export class WeiXinService extends Service {
 
     jsSignature = (noncestr, url) => {
         var data = { noncestr: noncestr, url: url };
-        return this.get('WeiXin/GetJsSignature', data);
+        let u = `${config.service.weixin}WeiXin/GetJsSignature`;
+        return this.get(u, data);
     }
 }
 

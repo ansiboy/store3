@@ -1,5 +1,5 @@
 import { Page, Menu, app, env } from 'site';
-import { StationService, ShoppingCartService, ShoppingService, WeiXinService, imageUrl } from 'services';
+import { StationService, ShoppingCartService, ShoppingService, WeiXinService, imageUrl, LocationService } from 'services';
 import Carousel = require('core/carousel');
 import Hammer = require('hammer');
 import * as ui from 'ui';
@@ -176,7 +176,7 @@ export default async function (page: Page) {
                                                 </div>
                                                 <div style={{ display: o.Count > 0 ? 'block' : 'none' }}>
                                                     <i className="icon-minus-sign text-primary" onClick={() => this.removeFormShoppingCart(o)} />
-                                                    <input className="number" type="number" value={o.Count as any}
+                                                    <input type="number" value={o.Count as any}
                                                         onChange={(e) => {
                                                             let value = Number.parseInt((e.target as HTMLInputElement).value);
                                                             if (!value) return;
@@ -246,45 +246,47 @@ function getCategories(products: Product[]) {
 }
 
 function getPosition(): Promise<string> {
-    return new Promise<string>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(
-            (args) => {
-                let lon = args.coords.longitude;    // 经度
-                let lat = args.coords.latitude;     // 纬度
+    let location = new LocationService();
+    return location.address();
+    // return new Promise<string>((resolve, reject) => {
+    //     navigator.geolocation.getCurrentPosition(
+    //         (args) => {
+    //             let lon = args.coords.longitude;    // 经度
+    //             let lat = args.coords.latitude;     // 纬度
 
-                var pt = new BMap.Point(lon, lat);
-                var geoc = new BMap.Geocoder();
+    //             var pt = new BMap.Point(lon, lat);
+    //             var geoc = new BMap.Geocoder();
 
-                var convertor = new BMap.Convertor();
-                convertor.translate([pt], 1, 5, (rs) => {
-                    geoc.getLocation(rs.points[0], (rs) => {
-                        resolve(rs.address);
-                    });
-                });
+    //             var convertor = new BMap.Convertor();
+    //             convertor.translate([pt], 1, 5, (rs) => {
+    //                 geoc.getLocation(rs.points[0], (rs) => {
+    //                     resolve(rs.address);
+    //                 });
+    //             });
 
-            },
-            (error) => {
-                switch (error.code) {
-                    case 1:
-                        resolve("位置服务被拒绝");
-                        break;
+    //         },
+    //         (error) => {
+    //             switch (error.code) {
+    //                 case 1:
+    //                     resolve("位置服务被拒绝");
+    //                     break;
 
-                    case 2:
-                        resolve("暂时获取不到位置信息");
-                        break;
+    //                 case 2:
+    //                     resolve("暂时获取不到位置信息");
+    //                     break;
 
-                    case 3:
-                        resolve("获取信息超时");
-                        break;
+    //                 case 3:
+    //                     resolve("获取信息超时");
+    //                     break;
 
-                    default:
-                    case 4:
-                        resolve("未知错误");
-                        break;
-                }
-            }
-        )
-    });
+    //                 default:
+    //                 case 4:
+    //                     resolve("未知错误");
+    //                     break;
+    //             }
+    //         }
+    //     )
+    // });
 }
 
 
@@ -318,27 +320,4 @@ function playAnimation(shoppingCartElement: HTMLElement, startX: number, startY:
     });
 }
 
-
-//============================================================
-if (env.isWeiXin()) {
-    let weixin = new WeiXinService();
-    var config = {
-        //debug: true,
-        //appId: site.config.weixin.appid,
-        timestamp: new Date().getTime(),
-        nonceStr: 'mystore',
-        jsApiList: ['onMenuShareTimeline', 'onMenuShareAppMessage', 'getLocation']
-    };
-
-    var url = location.href.split('#')[0];
-    weixin.jsSignature(config.nonceStr, url).then(function (obj) {
-        wx.config(config);
-        wx.ready(function () {
-            debugger;
-        });
-        wx.error((res) => {
-            debugger;
-        });
-    });
-}
 
