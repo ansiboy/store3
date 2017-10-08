@@ -24,7 +24,8 @@ interface CustomProperty {
 
 interface Product {
     Id: string, Arguments: Array<{ key: string, value: string }>,
-    BrandId: string, BrandName: string, Price: number,
+    BrandId: string, BrandName: string, CategoryName: string,
+    Price: number,
     Score: number, Unit: string, MemberPrice: number,
     Fields: Array<{ key: string, value: string }>,
     GroupId: string, ImagePath: string, ImagePaths: Array<string>,

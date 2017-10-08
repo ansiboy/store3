@@ -1,5 +1,5 @@
 import { ShoppingService, ShoppingCartService, userData, ValueStore, imageUrl } from 'services';//,
-import { Page, config, app, subscribe } from 'site';
+import { Page, config, app } from 'site';
 import * as ui from 'ui';
 
 

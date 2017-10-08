@@ -2,7 +2,7 @@
 @import "../../common.less";
 
 .home-index {
-
+    .padding-top(10);    
     .padding-bottom();
     .pulldown-indicator {
         height: @menu-height;
@@ -55,21 +55,30 @@
         }
 
         hr {
-            margin:15px 0 15px 0;
+            margin-top: 10px;
+            margin-bottom: 15px;
         }
     }
 
-    section {
-        .header {
-            height: 40px;
-            background-color: @brand-primary;
-            margin-bottom: 20px;
-            i { 
-                color: white;
-                font-size: 20px;
-                margin: 10px 20px 0;
-            }
+    header {
+        height: 40px;
+        background-color: @brand-primary;
+        margin-bottom: 20px;
+        i { 
+            color: white;
+            font-size: 20px;
+            margin: 10px 20px 0;
         }
+        .position {
+            color: white;
+            font-size: 14px;
+            padding: 10px 0 0 10px;
+        }
+    }
+
+    section.main {
+        padding-left: 80px;
+        // padding-right: 80px 
     }
     
     footer {
@@ -134,6 +143,22 @@
         } 
     }
 
+    aside {
+        padding-top: 40px;
+        border-right: 1px solid darken(@brand-primary,20%);
+        height: 100%;
+    }
+
+    .list-group-item {
+        border-left: none;
+        border-right: none;
+
+        &.active {
+            background-color: unset;
+            color: @brand-primary;
+            border-color: @list-group-border
+        }
+    }
    
 }
 

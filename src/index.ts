@@ -74,9 +74,10 @@ requirejs.config({
         css: 'js/css',
         fetch: 'js/fetch',
         hammer: 'js/hammer',
+        parabola: 'js/parabola',
         react: 'js/react',
-        ui: 'js/ui',
         'react-dom': 'js/react-dom',
+        ui: 'js/ui',
         text: 'js/text',
         // controls: 'controls',
         // core: modulesPath + '/core',
@@ -87,6 +88,7 @@ requirejs.config({
         'chitu.mobile': 'core/chitu.mobile',
         carousel: 'core/carousel',
         modules: modulesPath,
+        jweixin: 'https://res.wx.qq.com/open/js/jweixin-1.2.0.js',
         // ui: 'ui'
     }
 });
@@ -95,26 +97,9 @@ var modules = [
     'site'
 ];
 
-// if (isUglify) {
-//     modules.push('controls');
-// }
-// else {
-//     let controlsPath = 'controls'
-//     modules.push(
-//         'hammer', 'bezier-easing', `${controlsPath}/common`,
-//         `${controlsPath}/button`, `${controlsPath}/dataList`, `${controlsPath}/dialog`, `${controlsPath}/htmlView`,
-//         `${controlsPath}/imageBox`, `${controlsPath}/indicators`, `${controlsPath}/page`, `${controlsPath}/panel`,
-//         `${controlsPath}/tabs`
-//     );
-// }
 
+requirejs(['js/polyfill'], load)
 
-// if (isUglify) {
-    requirejs(['js/polyfill'], load)
-// }
-// else {
-    // load();
-// }
 function load() {
     requirejs(['react', 'react-dom'], function (React, ReactDOM) {
         window['React'] = React;

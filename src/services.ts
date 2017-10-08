@@ -12,7 +12,7 @@ let config = {
         weixin: `https://${REMOTE_HOST}/UserWeiXin/`,
         account: `https://${REMOTE_HOST}/UserAccount/`,
     },
-    appKey: '59c8e00a675d1b3414f83fc3',//'59a0d63ab58cf427f90c7d3e',// remote //
+    appKey: '59a0d63ab58cf427f90c7d3e',// remote //'59c8e00a675d1b3414f83fc3',//
     /** 调用服务接口超时时间，单位为秒 */
     ajaxTimeout: 30,
     pageSize: 10
@@ -36,7 +36,7 @@ export function imageUrl(path: string, width?: number) {
     }
 
     let urlParams = new Array<{ name: string, value: string }>();
-    let url = 'http://image.alinq.cn' + path;
+    let url = 'https://web.alinq.cn' + path;
     if (width) {
         // url = url + '?width=' + width;
         urlParams.push({ name: 'width', value: width.toString() });
@@ -276,10 +276,26 @@ export class StationService extends Service {
         pageIndex = pageIndex === undefined ? 0 : pageIndex;
         let url = StationService.url('Home/GetHomeProducts');
         return this.get<HomeProduct[]>(url, { pageIndex }).then(items => {
-            return items.map(o => ({
+
+            let products = items.map(o => ({
                 Id: o.ProductId, Name: o.Name, Price: o.Price,
                 ImagePath: o.ImagePath
             } as Product));
+
+            for (let i = 0; i < 2; i++) {
+                products[i].CategoryName = '营养保健'
+            }
+
+            for (let i = 2; i < 4; i++) {
+                products[i].CategoryName = '学生商城'
+            }
+
+
+            for (let i = 4; i < products.length; i++) {
+                products[i].CategoryName = '孕婴童'
+            }
+
+            return products;
         });
     }
 }
@@ -1008,6 +1024,15 @@ export class LocationService extends Service {
         });
     }
 }
+
+export class WeiXinService extends Service {
+
+    jsSignature = (noncestr, url) => {
+        var data = { noncestr: noncestr, url: url };
+        return this.get('WeiXin/GetJsSignature', data);
+    }
+}
+
 
 // 服务以及实体类模块 结束
 //==========================================================

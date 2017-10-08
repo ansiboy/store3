@@ -273,11 +273,9 @@ export function formatDate(date: Date) {
 }
 
 
-export function subscribe<T>(component: React.Component<any, any>, item: ValueStore<T>, callback: (value: T) => void) {
-    let func = item.add(callback);
-    let componentWillUnmount = (component as any).componentWillUnmount as () => void;
-    (component as any).componentWillUnmount = function () {
-        item.remove(func);
-        componentWillUnmount();
+export let env = {
+    isWeiXin() {
+        var ua = navigator.userAgent.toLowerCase();
+        return (ua.match(/MicroMessenger/i) as any) == 'micromessenger';
     }
 }
