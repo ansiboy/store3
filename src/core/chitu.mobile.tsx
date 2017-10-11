@@ -33,8 +33,8 @@ export class Application extends chitu.Application {
 
     }
 
-    protected createPage(routeData: chitu.RouteData) {
-        let page = super.createPage(routeData);
+    protected createPage(routeData: chitu.RouteData, args) {
+        let page = super.createPage(routeData, args);
         //(page as Page).app = this;
         this.pageShown.fire(this, { page });
 

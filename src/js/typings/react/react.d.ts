@@ -172,7 +172,7 @@ declare module React {
     // ----------------------------------------------------------------------
 
     interface ComponentClass<P> {
-        new (props?: P, context?: any): Component<P, any>;
+        new(props?: P, context?: any): Component<P, any>;
         propTypes?: ValidationMap<P>;
         contextTypes?: ValidationMap<any>;
         childContextTypes?: ValidationMap<any>;
@@ -180,7 +180,7 @@ declare module React {
     }
 
     interface ClassicComponentClass<P> extends ComponentClass<P> {
-        new (props?: P, context?: any): ClassicComponent<P, any>;
+        new(props?: P, context?: any): ClassicComponent<P, any>;
         getDefaultProps?(): P;
         displayName?: string;
     }
@@ -386,6 +386,7 @@ declare module React {
 
         border?: string;
         borderRadius?: number | string;
+        borderTop?: string;
         borderTopWidth?: number | string;
         borderWidth?: number | string;
         bottom?: number | string;

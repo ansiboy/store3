@@ -33,6 +33,8 @@
                 margin: 0 8px;
                 text-align: center;
                 border-radius: 0;
+                // border-style: solid;
+                border:1px solid;
                 -webkit-appearance: none;
             }
 
@@ -45,8 +47,8 @@
         }
 
         .interception {
-            width: 100%;
-            display: block;
+            // width: 100%;
+            // display: block;
             overflow: hidden;
             white-space: nowrap;
             -webkit-text-overflow: ellipsis;
@@ -70,6 +72,10 @@
             color: white;
             font-size: 20px;
             margin: 10px 20px 0;
+
+            &.icon-map-marker {
+                margin: 0 10px 0 0;
+            }
         }
         .position {
             color: white;
@@ -160,6 +166,14 @@
             color: @brand-primary;
             border-color: @list-group-border
         }
+
+        button {
+            padding: 0;
+            border: none;
+            background: none;
+        }
+
+
     }
    
 }

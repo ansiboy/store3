@@ -1,43 +1,43 @@
 import { Page, Menu, app, env } from 'site';
-import { StationService, ShoppingCartService, ShoppingService, WeiXinService, imageUrl, LocationService } from 'services';
+import { StationService, shoppingCart, ShoppingService, WeiXinService, imageUrl, LocationService } from 'services';
 import Carousel = require('core/carousel');
 import Hammer = require('hammer');
 import * as ui from 'ui';
 import wx = require('jweixin');
-
-interface ProductExt extends Product {
-    Count: number;
-}
+import { Argumnets as LocationPageArguments } from 'modules/home/location'
 
 export default async function (page: Page) {
     let station = page.createService(StationService);
-    let shoppingCart = page.createService(ShoppingCartService);
     let shop = page.createService(ShoppingService);
 
     interface IndexPageStatus {
         shoppingCartItems: ShoppingCartItem[],
-        position: string,
+        address: string,
         activeCategory: string
     }
 
     interface IndexPageProps {
-        products: ProductExt[],
+        products: Product[],
         categories: string[]
     }
 
     class IndexPage extends React.Component<IndexPageProps, IndexPageStatus>{
+        private coordinate: { lon: number; lat: number; };
 
         private mainView: HTMLElement;
         private header: HTMLElement;
         private footer: HTMLElement;
         private shoppingCartElement: HTMLElement;
+        private locationing: boolean;
+
+        private elementCategoryAttr = 'data-category';
 
         constructor(props) {
             super(props);
 
             this.state = {
                 shoppingCartItems: shoppingCart.items.value,
-                position: '',
+                address: '',
                 activeCategory: this.props.categories[0]
             };
 
@@ -45,29 +45,77 @@ export default async function (page: Page) {
                 this.state.shoppingCartItems = value;
                 this.setState(this.state);
             });
-
-            let position = getPosition().then(o => {
-                this.state.position = o;
-                this.setState(this.state);
-            })
         }
 
-        private async loadData(pageIndex): Promise<ProductExt[]> {
-            let products = await station.proudcts(pageIndex);
-            return products as ProductExt[];
-        }
-
-        addToShoppingCart(product: ProductExt) {
-            product.Count = (product.Count || 0) + 1;
-            shoppingCart.setItemCount(product, product.Count);
-        }
-
-        removeFormShoppingCart(product: ProductExt) {
-            if (product.Count < 1)
+        location() {
+            if (this.locationing == true)
                 return;
 
-            product.Count = (product.Count || 0) - 1;
-            shoppingCart.setItemCount(product, product.Count);
+            this.locationing = true;
+            let location = new LocationService();
+            this.state.address = '正在定位中...';
+            this.setState(this.state);
+            location.address()
+                .then(o => {
+                    this.state.address = o.address;
+                    this.coordinate = o.coordinate;
+                    this.setState(this.state);
+                    this.locationing = false;
+                })
+                .catch(err => {
+                    this.state.address = (err as Error).message;
+                    this.setState(this.state);
+                    this.locationing = false;
+                })
+
+        }
+
+        showLocationPage() {
+            let args: LocationPageArguments = {
+                onAddressSelected: (address: string) => {
+                    this.state.address = address;
+                    this.setState(this.state);
+                    app.back();
+
+                },
+                currentAddress: this.state.address,
+            };
+
+            let locationPage = app.redirect('home_location', args);
+        }
+
+        scrollTo(categoryName: string) {
+            let element = page.element.querySelector(`[${this.elementCategoryAttr}=${categoryName}]`) as HTMLElement;
+            console.assert(element != null);
+            let y = element.offsetTop;
+
+            let HEADER_HEIGHT = 40;
+            let PADDING = 16;
+
+            // this.mainView.scrollTop = element.offsetTop - (HEADER_HEIGHT + PADDING);
+            let to = element.offsetTop - (HEADER_HEIGHT + PADDING);
+            animateScrollTo(this.mainView, to, 100);
+            this.state.activeCategory = categoryName;
+            this.setState(this.state);
+            // page.element.scrollTo(0, y);
+        }
+
+        private async loadData(pageIndex): Promise<Product[]> {
+            let products = await station.proudcts(pageIndex);
+            return products as Product[];
+        }
+
+        addToShoppingCart(product: Product, count: number) {
+            count = count + 1;
+            shoppingCart.setItemCount(product, count);
+        }
+
+        minusFormShoppingCart(product: Product, count: number) {
+            if (count < 1)
+                return;
+
+            count = (count || 0) - 1;
+            shoppingCart.setItemCount(product, count);
         }
 
         redirect(o: Product) {
@@ -76,11 +124,11 @@ export default async function (page: Page) {
         }
 
         settlement() {
-            var items = this.props.products.filter(o => o.Count);
+            var items = shoppingCart.items.value.filter(o => o.Count > 0);
             if (items.length <= 0)
                 return;
 
-            var productIds = items.map(o => o.Id);
+            var productIds = items.map(o => o.ProductId);
             var quantities = items.map(o => o.Count);
 
             let result = shop.createOrder(productIds, quantities)
@@ -115,20 +163,22 @@ export default async function (page: Page) {
                 while (element != null);
 
                 if (itemElement) {
-                    let category = itemElement.getAttribute('data-category');
+                    let category = itemElement.getAttribute(this.elementCategoryAttr);
                     if (category == this.state.activeCategory && category != null)
                         return;
                     this.state.activeCategory = category;
                     this.setState(this.state);
                 }
             }
+
+            this.location();
         }
 
-        onAddButtonClick(e: HTMLButtonElement, o: ProductExt) {
+        onAddButtonClick(e: HTMLButtonElement, o: Product, count: number) {
             if (!e) return;
 
             e.onclick = (event) => {
-                this.addToShoppingCart(o);
+                this.addToShoppingCart(o, count);
                 playAnimation(this.shoppingCartElement, event.pageX, event.pageY);
             }
         }
@@ -136,9 +186,6 @@ export default async function (page: Page) {
         render() {
             let products = this.props.products;
             let shoppingCartItems = this.state.shoppingCartItems;
-            products.forEach(o => {
-                o.Count = shoppingCartItems.filter(p => p.ProductId == o.Id).map(o => o.Count)[0] || 0;
-            })
 
             let count = 0;
             let total = 0;
@@ -147,58 +194,68 @@ export default async function (page: Page) {
                 total = total + o.Price * o.Count;
             })
 
-            let position = this.state.position;
+            let position = this.state.address;
 
             return (
                 <div className="page">
                     <header>
-                        <div className="position pull-left">{position}</div>
                         <i className="icon-user pull-right" onClick={() => location.hash = `#user_index`}></i>
+                        <div className="position interception" onClick={() => this.showLocationPage()}>
+                            <i className="icon-map-marker" />
+                            {position}
+                            <i className="icon-sort-down" style={{ margin: 0, position: 'relative', left: 6, top: -2 }} />
+                        </div>
                     </header>
                     <section className="main" ref={(e: HTMLElement) => this.mainView = e || this.mainView}>
                         <div className="products container">
-                            {products.map(o => [
-                                <div key={o.Id} className="row" data-category={o.CategoryName}>
-                                    <div className='col-xs-3' onClick={() => this.redirect(o)}>
-                                        <img src={imageUrl(o.ImagePath, 100)} className="img-responsive" />
-                                    </div>
-                                    <div className='col-xs-9 pull-left'>
-                                        <div className="name interception" onClick={() => this.redirect(o)}>{o.Name}</div>
-                                        <div className="title interception">{o.Title}</div>
-                                        <div className="select">
-                                            <div className='pull-left price'>￥{o.Price.toFixed(2)}</div>
-                                            <div className='pull-right' style={{ height: 28 }}>
-                                                <div style={{ display: o.Count == 0 ? 'block' : 'none' }}>
-                                                    <button className='btn-link'
-                                                        ref={(e: HTMLButtonElement) => this.onAddButtonClick(e, o)}>
-                                                        <i className='icon-shopping-cart' />
-                                                    </button>
+                            {products.map(o => {
+                                var itemCount = shoppingCartItems.filter(s => s.ProductId == o.Id).map(s => s.Count)[0] || 0;
+                                return [
+                                    <div key={o.Id} className="row"
+                                        ref={(e: HTMLElement) => {
+                                            if (!e) return;
+                                            e.setAttribute(this.elementCategoryAttr, o.CategoryName);
+                                        }}>
+                                        <div className='col-xs-3' onClick={() => this.redirect(o)}>
+                                            <img src={imageUrl(o.ImagePath, 100)} className="img-responsive" />
+                                        </div>
+                                        <div className='col-xs-9 pull-left'>
+                                            <div className="name interception" onClick={() => this.redirect(o)}>{o.Name}</div>
+                                            <div className="title interception">{o.Title}</div>
+                                            <div className="select">
+                                                <div className='pull-left price'>￥{o.Price.toFixed(2)}</div>
+                                                <div className='pull-right' style={{ height: 28 }}>
+                                                    <div style={{ display: itemCount == 0 ? 'block' : 'none' }}>
+                                                        <button className='btn-link'
+                                                            ref={(e: HTMLButtonElement) => this.onAddButtonClick(e, o, itemCount)}>
+                                                            <i className='icon-shopping-cart' />
+                                                        </button>
+                                                    </div>
+                                                    <div style={{ display: itemCount > 0 ? 'block' : 'none' }}>
+                                                        <i className="icon-minus-sign text-primary" onClick={() => this.minusFormShoppingCart(o, itemCount)} />
+                                                        <input type="number" value={itemCount as any}
+                                                            onChange={(e) => {
+                                                                let value = Number.parseInt((e.target as HTMLInputElement).value);
+                                                                if (!value) return;
+                                                                shoppingCart.setItemCount(o, value);
+                                                            }} />
+                                                        <i className="icon-plus-sign text-primary" ref={(e: HTMLButtonElement) => this.onAddButtonClick(e, o, itemCount)} />
+                                                    </div>
                                                 </div>
-                                                <div style={{ display: o.Count > 0 ? 'block' : 'none' }}>
-                                                    <i className="icon-minus-sign text-primary" onClick={() => this.removeFormShoppingCart(o)} />
-                                                    <input type="number" value={o.Count as any}
-                                                        onChange={(e) => {
-                                                            let value = Number.parseInt((e.target as HTMLInputElement).value);
-                                                            if (!value) return;
-
-                                                            o.Count = value;
-                                                            this.setState(this.state);
-                                                        }} />
-                                                    <i className="icon-plus-sign text-primary" ref={(e: HTMLButtonElement) => this.onAddButtonClick(e, o)} />
-                                                </div>
-                                                {/* } */}
                                             </div>
                                         </div>
-                                    </div>
-                                </div>,
-                                <hr className="row" />
-                            ])}
+                                    </div>,
+                                    <hr className="row" />
+                                ]
+                            })}
                         </div >
                     </section>
                     <aside style={{ width: 80 }}>
                         <ul className="list-group">
                             {categires.map(o =>
-                                <li className={o == this.state.activeCategory ? 'list-group-item active' : 'list-group-item'} key={o}>{o}</li>
+                                <li className={o == this.state.activeCategory ? 'list-group-item active' : 'list-group-item'} key={o}>
+                                    <button onClick={() => this.scrollTo(o)}>{o}</button>
+                                </li>
                             )}
                         </ul>
                     </aside>
@@ -227,7 +284,7 @@ export default async function (page: Page) {
     }
 
     let shoppingCartItems: ShoppingCartItem[];
-    let products = await station.proudcts() as ProductExt[];
+    let products = await station.proudcts() as Product[];
     let categires = getCategories(products);
 
     ReactDOM.render(<IndexPage products={products} categories={categires} />, page.element);
@@ -245,48 +302,9 @@ function getCategories(products: Product[]) {
     return categires;
 }
 
-function getPosition(): Promise<string> {
+function getAddress(): Promise<string> {
     let location = new LocationService();
-    return location.address();
-    // return new Promise<string>((resolve, reject) => {
-    //     navigator.geolocation.getCurrentPosition(
-    //         (args) => {
-    //             let lon = args.coords.longitude;    // 经度
-    //             let lat = args.coords.latitude;     // 纬度
-
-    //             var pt = new BMap.Point(lon, lat);
-    //             var geoc = new BMap.Geocoder();
-
-    //             var convertor = new BMap.Convertor();
-    //             convertor.translate([pt], 1, 5, (rs) => {
-    //                 geoc.getLocation(rs.points[0], (rs) => {
-    //                     resolve(rs.address);
-    //                 });
-    //             });
-
-    //         },
-    //         (error) => {
-    //             switch (error.code) {
-    //                 case 1:
-    //                     resolve("位置服务被拒绝");
-    //                     break;
-
-    //                 case 2:
-    //                     resolve("暂时获取不到位置信息");
-    //                     break;
-
-    //                 case 3:
-    //                     resolve("获取信息超时");
-    //                     break;
-
-    //                 default:
-    //                 case 4:
-    //                     resolve("未知错误");
-    //                     break;
-    //             }
-    //         }
-    //     )
-    // });
+    return location.address().then(o => o.address);
 }
 
 
@@ -296,14 +314,15 @@ function playAnimation(shoppingCartElement: HTMLElement, startX: number, startY:
         if (pointer == null) {
             pointer = document.createElement("div");
             pointer.style.position = 'absolute';
-            pointer.style.left = `${startX}px`;
-            pointer.style.top = `${startY}px`;
             pointer.style.width = '12px'
             pointer.style.height = '12px';
             pointer.style.borderRadius = '6px';
             pointer.style.backgroundColor = 'red';
             pointer.style.zIndex = `1000`;
         }
+
+        pointer.style.left = `${startX}px`;
+        pointer.style.top = `${startY}px`;
 
         pointer.style.removeProperty('display');
         document.body.appendChild(pointer);
@@ -318,6 +337,24 @@ function playAnimation(shoppingCartElement: HTMLElement, startX: number, startY:
         myParabola.position().move();
 
     });
+}
+
+/**
+ * 有动画效果的滚动
+ * @param element 要滚动的元素
+ * @param to 滚动到的位置
+ * @param duration 滚动持续时间
+ */
+function animateScrollTo(element, to, duration) {
+    if (duration <= 0) return;
+    var difference = to - element.scrollTop;
+    var perTick = difference / duration * 10;
+
+    setTimeout(function () {
+        element.scrollTop = element.scrollTop + perTick;
+        if (element.scrollTop === to) return;
+        animateScrollTo(element, to, duration - 10);
+    }, 10);
 }
 
 

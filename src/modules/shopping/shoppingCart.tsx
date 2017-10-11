@@ -95,10 +95,6 @@ export default async function (page: Page, hideMenu: boolean = false) {
                     p = shoppingCart.selectAll();
                 }
 
-                // p.then((items) => {
-                //     this.setStateByItems(items);
-                // })
-
                 return p;
             }
 

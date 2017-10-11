@@ -1,9 +1,9 @@
-import { Service, ShoppingCartService, userData, ValueStore } from 'services';
+import { Service, shoppingCart, userData, ValueStore } from 'services';
 import { Application as BaseApplication } from 'chitu.mobile';
 import errorHandle from 'errorHandle';
 import * as ui from 'ui';
 
-import * as chitu from 'chitu';
+// import * as chitu from 'maishu-chitu';
 
 /** 是否为 APP */
 let isCordovaApp = location.protocol === 'file:';
@@ -28,7 +28,7 @@ export class Menu extends React.Component<{ pageName: string }, { itemsCount: nu
 
     constructor(props) {
         super(props);
-        let shoppingCart = (app.getPage(this.props.pageName) as Page).createService(ShoppingCartService);
+        // let shoppingCart = (app.getPage(this.props.pageName) as Page).createService(ShoppingCartService);
         this.state = { itemsCount: shoppingCart.productsCount || 0 };
         shoppingCart.onChanged(this, (value) => {
             this.state.itemsCount = shoppingCart.productsCount;
@@ -194,8 +194,8 @@ export class Application extends BaseApplication {
         return routeData;
     }
 
-    protected createPage(routeData: chitu.RouteData) {
-        let page = super.createPage(routeData);// as Page;
+    protected createPage(routeData: chitu.RouteData, args) {
+        let page = super.createPage(routeData, args);// as Page;
 
         let path = routeData.actionPath.substr(routeData.basePath.length);
         let cssPath = `css!content/app` + path;

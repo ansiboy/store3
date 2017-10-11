@@ -1,21 +1,27 @@
-
 import chitu = require('chitu');
 
 const REMOTE_HOST = 'service.alinq.cn';
 
+
+let protocol = location.protocol;
+
 let config = {
     service: {
         host: REMOTE_HOST,
-        shop: `https://${REMOTE_HOST}/UserShop/`,
-        site: `https://${REMOTE_HOST}/UserSite/`,
-        member: `https://${REMOTE_HOST}/UserMember/`,
-        weixin: `https://${REMOTE_HOST}/UserWeiXin/`,
-        account: `https://${REMOTE_HOST}/UserAccount/`,
+        shop: `${protocol}//${REMOTE_HOST}/UserShop/`,
+        site: `${protocol}//${REMOTE_HOST}/UserSite/`,
+        member: `${protocol}//${REMOTE_HOST}/UserMember/`,
+        weixin: `${protocol}//${REMOTE_HOST}/UserWeiXin/`,
+        account: `${protocol}//${REMOTE_HOST}/UserAccount/`,
     },
-    appKey: '59a0d63ab58cf427f90c7d3e',// remote //'59c8e00a675d1b3414f83fc3',//
+    appKey: '59a0d63ab58cf427f90c7d3e',//'59c8e00a675d1b3414f83fc3',// 
     /** 调用服务接口超时时间，单位为秒 */
     ajaxTimeout: 30,
     pageSize: 10
+}
+
+export interface ServiceError extends Error {
+    method?: string
 }
 
 //==========================================================
@@ -36,7 +42,7 @@ export function imageUrl(path: string, width?: number) {
     }
 
     let urlParams = new Array<{ name: string, value: string }>();
-    let url = 'https://web.alinq.cn' + path;
+    let url = `${protocol}//image.alinq.cn` + path;
     if (width) {
         // url = url + '?width=' + width;
         urlParams.push({ name: 'width', value: width.toString() });
@@ -96,7 +102,8 @@ async function ajax<T>(url: string, options: RequestInit): Promise<T> {
 
 
     if (response.status >= 300) {
-        let err = new Error();
+        let err: ServiceError = new Error();
+        err.method = options.method;
         err.name = `${response.status}`;
         err.message = isJSONContextType ? (textObject.Message || textObject.message) : textObject;
         err.message = err.message || response.statusText;
@@ -300,7 +307,6 @@ export class StationService extends Service {
     }
 }
 
-
 export class ShoppingService extends Service {
     constructor() {
         super();
@@ -395,10 +401,6 @@ export class ShoppingService extends Service {
     }
     order(orderId: string) {
         return this.get<Order>(this.url('Order/GetOrder'), { orderId });
-        // .then(o => {
-        //     o.OrderDetails.forEach(c => c.ImageUrl = imageUrl(c.ImageUrl));
-        //     return o;
-        // });
     }
     createOrder(productIds: string[], quantities: number[]) {
         var result = this.post<Order>(this.url('Order/CreateOrder'), { productIds: productIds, quantities: quantities })
@@ -479,7 +481,7 @@ export class ShoppingService extends Service {
     /** 获取店铺优惠劵数量 */
     storeCouponsCount() {
         let url = this.url('Coupon/GetStoreCouponsCount');
-        return this.get<number>(url, {});
+        return this.get<number>(url);
     }
 
     private resizeImage(img: HTMLImageElement, max_width: number, max_height: number): string {
@@ -489,7 +491,6 @@ export class ShoppingService extends Service {
         var width: number = img.width;
         var height: number = img.height;
 
-        // calculate the width and height, constraining the proportions
         if (width > height) {
             if (width > max_width) {
                 height = Math.round(height *= max_width / width);
@@ -587,7 +588,7 @@ export class ShoppingService extends Service {
  * 3. 在外部方法使用 ShoppingCartItem 时，不要直接修改它的字段，而是通过
  *    ShoppingCartService 类的方法修改。
  */
-type ShoppingCart = {
+interface ShoppingCart {
     addItem: (item: ShoppingCartItem) => Promise<any>,
     setItemCount: (itemId: string, count: number) => Promise<any>,
     load: () => Promise<ShoppingCartItem[]>,
@@ -596,7 +597,109 @@ type ShoppingCart = {
     unselecteItem: (itemId: string) => Promise<any>
 }
 
-export class ShoppingCartService extends Service {
+
+class RemoteShoppintCart extends Service implements ShoppingCart {
+    private setItemCountTimeoutId;
+    private url(method: string) {
+        return `${config.service.shop}ShoppingCart/${method}`;
+    }
+
+    addItem(item: ShoppingCartItem): Promise<any> {
+        let url = this.url("AddItem");
+        return this.post(url, { item });
+    }
+    private _setItemCount(itemId: string, count: number): Promise<any> {
+        if (count <= 0) {
+            let url = this.url('RemoveItem');
+            return this.delete(url, { itemId });
+        }
+        let url = this.url('UpdateItem');
+        let item = { Id: itemId, Count: count } as ShoppingCartItem;
+        return this.put(url, { item });
+    }
+    setItemCount(itemId: string, count: number): Promise<any> {
+        return new Promise((resolve, rejct) => {
+            //================================================================
+            // 采用延时更新，减轻服务器负荷
+            if (this.setItemCountTimeoutId != null) {
+                window.clearTimeout(this.setItemCountTimeoutId);
+            }
+
+            this.setItemCountTimeoutId = setTimeout(() => {
+
+                this._setItemCount(itemId, count)
+                    .then(() => resolve())
+                    .catch(err => rejct(err));
+
+            }, 1000 * 10); // 延迟 10 秒更新
+            //================================================================
+        })
+    }
+    load() {
+        let url = this.url("Get");
+        return this.get<ShoppingCartItem[]>(url);
+    }
+    clear(): Promise<any> {
+        return Promise.resolve();
+    }
+    selecteItem(itemId: string): Promise<any> {
+        let url = this.url('UpdateItem');
+        let item = { Id: itemId, Selected: true } as ShoppingCartItem;
+        return this.put(url, { item });
+    }
+    unselecteItem(itemId: string): Promise<any> {
+        let url = this.url('UpdateItem');
+        let item = { Id: itemId, Selected: false } as ShoppingCartItem;
+        return this.put(url, { item });
+    }
+
+}
+
+class LocalShoppintCart implements ShoppingCart {
+    private SHOPPING_CART_STORAGE_NAME = 'shoppingCart';
+    async addItem(item: ShoppingCartItem): Promise<any> {
+        let items = await this.load();
+        items.push(item);
+
+        let str = JSON.stringify(items);
+        localStorage.setItem(this.SHOPPING_CART_STORAGE_NAME, str);
+        return Promise.resolve();
+    }
+    async  setItemCount(id: string, count: number): Promise<any> {
+        let items = await this.load();
+        let item = items.filter(o => o.Id == id)[0];
+        console.assert(item != null);
+        item.Count = count;
+
+        let str = JSON.stringify(items);
+        localStorage.setItem(this.SHOPPING_CART_STORAGE_NAME, str);
+        return Promise.resolve();
+    }
+    load(): Promise<ShoppingCartItem[]> {
+        let str = localStorage.getItem(this.SHOPPING_CART_STORAGE_NAME);
+        var items = str == null ? [] : JSON.parse(str);
+        return Promise.resolve(items);
+    }
+    clear(): Promise<any> {
+        localStorage.removeItem(this.SHOPPING_CART_STORAGE_NAME);
+        return Promise.resolve();
+    }
+    async selecteItem(itemId: string): Promise<any> {
+        let items = await this.load();
+        let item = items.filter(o => o.Id == itemId)[0];
+        console.assert(item != null);
+        item.Selected = true;
+    }
+    async unselecteItem(itemId: string): Promise<any> {
+        let items = await this.load();
+        let item = items.filter(o => o.Id == itemId)[0];
+        console.assert(item != null);
+        item.Selected = false;
+    }
+
+}
+
+class ShoppingCartService extends Service {
     private SHOPPING_CART_STORAGE_NAME = 'shoppingCart';
     private _items: ValueStore<ShoppingCartItem[]>;
     private isLogin: boolean;
@@ -609,81 +712,9 @@ export class ShoppingCartService extends Service {
         this._items = new ValueStore([]);
         let str = localStorage.getItem(this.SHOPPING_CART_STORAGE_NAME);
 
-        this.remote = {
-            addItem: (item: ShoppingCartItem) => {
-                let url = this.url("AddItem");
-                return this.post(url, { item });
-            },
-            setItemCount: (itemId: string, count: number) => {
-                if (count <= 0) {
-                    let url = this.url('RemoveItem');
-                    return this.delete(url, { itemId });
-                }
-                let url = this.url('UpdateItem');
-                let item = { Id: itemId, Count: count } as ShoppingCartItem;
-                return this.put(url, { item });
-            },
-            load: () => {
-                let url = this.url("Get");
-                return this.get<ShoppingCartItem[]>(url);
-            },
-            clear: () => {
-                return Promise.resolve();
-            },
-            selecteItem: (itemId) => {
-                let url = this.url('UpdateItem');
-                let item = { Id: itemId, Selected: true } as ShoppingCartItem;
-                return this.put(url, { item });
-            },
-            unselecteItem: (itemId) => {
-                let url = this.url('UpdateItem');
-                let item = { Id: itemId, Selected: false } as ShoppingCartItem;
-                return this.put(url, { item });
-            }
-        };
+        this.remote = new RemoteShoppintCart();
 
-        this.local = {
-            addItem: async (item: ShoppingCartItem) => {
-                let items = await this.local.load();
-                items.push(item);
-
-                let str = JSON.stringify(items);
-                localStorage.setItem(this.SHOPPING_CART_STORAGE_NAME, str);
-                return Promise.resolve();
-            },
-            setItemCount: async (id: string, count: number) => {
-                let items = await this.local.load();
-                let item = items.filter(o => o.Id == id)[0];
-                console.assert(item != null);
-                item.Count = count;
-
-                let str = JSON.stringify(items);
-                localStorage.setItem(this.SHOPPING_CART_STORAGE_NAME, str);
-                return Promise.resolve();
-            },
-            load: () => {
-                let str = localStorage.getItem(this.SHOPPING_CART_STORAGE_NAME);
-                var items = str == null ? [] : JSON.parse(str);
-                return Promise.resolve(items);
-            },
-            clear: () => {
-                localStorage.removeItem(this.SHOPPING_CART_STORAGE_NAME);
-                return Promise.resolve();
-            },
-            selecteItem: async (itemId) => {
-                let items = await this.local.load();
-                let item = items.filter(o => o.Id == itemId)[0];
-                console.assert(item != null);
-                item.Selected = true;
-            },
-            unselecteItem: async (itemId) => {
-                let items = await this.local.load();
-                let item = items.filter(o => o.Id == itemId)[0];
-                console.assert(item != null);
-                item.Selected = false;
-            }
-        }
-
+        this.local = new LocalShoppintCart();
         this.isLogin = userData.userToken.value != null && userData.userToken.value != '';
         userData.userToken.add(value => {
             this.isLogin = value != null && value != '';
@@ -709,6 +740,10 @@ export class ShoppingCartService extends Service {
 
         let url = this.url('Get');
         let items = await this.get<ShoppingCartItem[]>(url)//.then(items => {
+        //=========================================
+        // 设置 ID，兼容旧数据
+        items.forEach(o => o.Id = o.Id || guid());
+        //=========================================
 
         for (let i = 0; i < localItems.length; i++) {
             let item = items.filter(o => o.ProductId == localItems[i].ProductId)[0];
@@ -777,11 +812,11 @@ export class ShoppingCartService extends Service {
                 Selected: true,
                 Price: product.Price,
             };
-            await this.shoppingCar.addItem(shoppingCartItem);
+            this.shoppingCar.addItem(shoppingCartItem);
             shoppingCartItems.push(shoppingCartItem);
         }
         else {
-            await this.shoppingCar.setItemCount(shoppingCartItem.Id, count);
+            this.shoppingCar.setItemCount(shoppingCartItem.Id, count);
             shoppingCartItem.Count = count;
         }
 
@@ -1028,6 +1063,11 @@ function createWeixinClient() {
 }
 
 export class LocationService extends Service {
+    private MSG_CANNT_GET_ADDRESS = '暂时获取不到位置信息';
+    private MSG_TIMEOUT = '获取位置信息超时';
+    private MSG_REJECT = '位置服务被拒绝';
+    private MSG_UNKNOWN = '未知错误';
+
     private url(path: string) {
         return `${config.service.shop}${path}`;
     }
@@ -1062,10 +1102,10 @@ export class LocationService extends Service {
                     (err) => {
                         let error = new Error();
                         error.message =
-                            err.code == 1 ? '位置服务被拒绝' :
-                                err.code == 2 ? '暂时获取不到位置信息' :
-                                    err.code == 3 ? '获取信息超时' :
-                                        '未知错误';
+                            err.code == 1 ? this.MSG_REJECT :
+                                err.code == 2 ? this.MSG_CANNT_GET_ADDRESS :
+                                    err.code == 3 ? this.MSG_TIMEOUT :
+                                        this.MSG_UNKNOWN;
                         error.name = `geolocationError code:${err.code}`;
                         reject(error)
                     }
@@ -1073,15 +1113,23 @@ export class LocationService extends Service {
             }
             else {
                 let err = new Error();
-                err.message = '暂时获取不到位置信息';
+                err.message = this.MSG_CANNT_GET_ADDRESS;
                 reject(err);
             }
         })
     }
 
 
-    async address(): Promise<string> {
-        return new Promise<string>(async (resolve, reject) => {
+    async address() {
+        return new Promise<{ address: string, coordinate: { lon: number, lat: number } }>(async (resolve, reject) => {
+
+            let timeoutId = window.setTimeout(() => {
+                let err = new Error();
+                err.name = 'timeout';
+                err.message = this.MSG_TIMEOUT;
+                reject(err)
+            }, 1000 * 60 * 2);  //定位超时设为 2 分钟
+
             try {
                 let coordinate = await this.coordinate();
                 let { lon, lat } = coordinate;
@@ -1090,13 +1138,17 @@ export class LocationService extends Service {
                 var convertor = new BMap.Convertor();
                 convertor.translate([pt], 1, 5, (rs) => {
                     geoc.getLocation(rs.points[0], (rs) => {
-                        resolve(rs.address);
+                        resolve({ address: rs.address, coordinate });
                     });
                 });
             }
             catch (err) {
                 let error = err as Error;
-                resolve(error.message);
+                err.message = this.MSG_CANNT_GET_ADDRESS;
+                reject(error);
+            }
+            finally {
+                window.clearTimeout(timeoutId);
             }
         })
 
@@ -1237,13 +1289,13 @@ class UserData {
 }
 
 
-
 export let userData = new UserData();;
+export　let shoppingCart = new ShoppingCartService();
+
 userData.userToken.add((value) => {
     if (!value)
         return;
 
-    let ShoppingCart = new ShoppingCartService();
 
     // ShoppingCart.getItems().then((value) => {
     //     userData.shoppingCartItems.value = value;

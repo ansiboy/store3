@@ -2,7 +2,7 @@ import { Page, defaultNavBar, Menu } from 'site';
 import { ShoppingService, StationService } from 'services';
 // import { ImageBox } from 'controls/imageBox';
 // import { PageComponent, PageHeader, PageFooter } from 'controls/page';
-let { PageComponent, PageHeader, PageFooter, PageView, ImageBox } = controls;
+// let { PageComponent, PageHeader, PageFooter, PageView, ImageBox } = controls;
 
 export default function (page: Page) {
     let shop = page.createService(ShoppingService);
@@ -18,7 +18,7 @@ export default function (page: Page) {
                 <div className="row">
                     {this.props.cateories.map(item => (
                         <a key={item.Id} href={`#home_productList?categoryId=${item.Id}`} className="col-xs-3">
-                            <ImageBox src={item.ImagePath} />
+                            <img src={item.ImagePath} />
                             <span className="mini interception">{item.Name}</span>
                         </a>
                     ))}
@@ -29,8 +29,8 @@ export default function (page: Page) {
 
     shop.cateories().then(items => {
         ReactDOM.render(
-            <PageComponent>
-                <PageHeader>
+            <div className="page">
+                <header>
                     <nav className="bg-primary">
                         <a href="#home_search" className="search">
                             <div name="search_box" className="form-control" style={{ borderWidth: 0, borderRadius: 4 }}>
@@ -41,14 +41,14 @@ export default function (page: Page) {
                             </div>
                         </a>
                     </nav>
-                </PageHeader>
-                <PageFooter>
+                </header>
+                <footer>
                     <Menu pageName={page.name} />
-                </PageFooter>
-                <PageView className="main">
+                </footer>
+                <section className="main">
                     <ClassPage cateories={items} />
-                </PageView>
-            </PageComponent>, page.element);
+                </section>
+            </div>, page.element);
     })
 
 

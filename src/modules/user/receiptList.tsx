@@ -1,6 +1,6 @@
 import { Page, defaultNavBar, app } from 'site';
 import { ShoppingService } from 'services';
-import { ReceiptEditRouteValues } from 'modules/user/receiptEdit';
+import { ReceiptEditPageArguments } from 'modules/user/receiptEdit';
 export type SetAddress = (address: string, order: Order) => void;
 export interface ReceiptListRouteValues {
     callback: SetAddress,
@@ -34,8 +34,9 @@ export default function (page: Page) {
                     }
                     this.state.items.unshift(receipt);
                     this.setState(this.state);
+                    app.back();
                 }
-            } as ReceiptEditRouteValues;
+            } as ReceiptEditPageArguments;
             app.redirect('user_receiptEdit', routeValues);
         }
         private editReceipt(receipt: ReceiptInfo) {
@@ -51,8 +52,9 @@ export default function (page: Page) {
                     }
 
                     this.setState(this.state);
+                    app.back();
                 }
-            } as ReceiptEditRouteValues;
+            } as ReceiptEditPageArguments;
             app.redirect('user_receiptEdit', routeValues);
         }
         async setDefaultReceipt(receipt: ReceiptInfo) {

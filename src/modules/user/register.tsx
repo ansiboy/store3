@@ -4,7 +4,7 @@ import * as services from 'services';
 import * as ui from 'ui';
 
 export default function (page: Page) {
-    let member = page.createService(services.MemberService); 
+    let member = page.createService(services.MemberService);
     class RegisterPage extends React.Component<{}, { letfSeconds: number }> {
         private validator: FormValidator;
         private formElement: HTMLFormElement;
@@ -37,9 +37,9 @@ export default function (page: Page) {
                 }
             });
         }
-        async  sendVerifyCode() {
+        async sendVerifyCode(): Promise<any> {
             if (!this.validator.validateFields('mobile')) {
-                return;
+                return Promise.reject({});
             }
 
 
@@ -59,14 +59,14 @@ export default function (page: Page) {
                 .then((data) => {
                     this.smsId = data.smsId;
                 })
-                .catch(()=>{
+                .catch(() => {
                     this.state.letfSeconds = 0;
                     this.setState(this.state);
                 });
         }
-        register() {
+        register(): Promise<any> {
             if (!this.validator.validateForm())
-                return;
+                return Promise.reject({});
 
             let mobile = this.formElement['mobile'].value;
             let password = this.formElement['password'].value;

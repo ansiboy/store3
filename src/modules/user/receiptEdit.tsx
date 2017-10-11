@@ -4,7 +4,7 @@ import FormValidator = require('core/formValidator');
 import { RegionsPageRouteValues } from 'modules/user/regions';
 import * as ui from 'ui';
 
-export interface ReceiptEditRouteValues {
+export interface ReceiptEditPageArguments {
     id?: string,
     onSaved: (receipt: ReceiptInfo) => void
 }
@@ -54,7 +54,7 @@ export default async function (page: Page) {
 
                 if (routeValues.onSaved) {
                     routeValues.onSaved(this.state.receiptInfo);
-                    app.back();
+                    // app.back();
                 }
                 return data;
             });
@@ -200,7 +200,7 @@ export default async function (page: Page) {
     }
 
     let receiptInfo: ReceiptInfo;
-    let routeValues = page.routeData.values as ReceiptEditRouteValues;
+    let routeValues = page.routeData.values as ReceiptEditPageArguments;
     let id = routeValues.id;
     if (id) {
         receiptInfo = await shop.receiptInfo(id);
