@@ -1,11 +1,10 @@
 import { Page, defaultNavBar, app } from 'site';
-import { ShoppingService, ShoppingCartService, AccountService, userData, imageUrl } from 'services';
+import { ShoppingService, shoppingCart, AccountService, userData, imageUrl } from 'services';
 import { SetAddress, ReceiptListRouteValues } from 'modules/user/receiptList';
 
 export default function (page: Page) {
 
     let shop = page.createService(ShoppingService);
-    let shoppingCart = page.createService(ShoppingCartService)
     let account = page.createService(AccountService);
 
     interface OrderPageState {

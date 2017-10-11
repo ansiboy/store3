@@ -1,10 +1,8 @@
 import { Page, Menu, defaultNavBar, app } from 'site';
-import { ShoppingCartService, ShoppingService, imageUrl } from 'services';
+import { shoppingCart, ShoppingService, imageUrl } from 'services';
 import * as ui from 'ui';
 
 export default async function (page: Page, hideMenu: boolean = false) {
-
-    let shoppingCart = page.createService(ShoppingCartService);
 
     type ShoppingCartItemExt = ShoppingCartItem & { InputCount: number };
     interface ShoppingCartState {

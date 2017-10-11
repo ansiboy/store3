@@ -1,13 +1,14 @@
 import { Page, Menu, defaultNavBar, app } from 'site';
-import { ShoppingCartService, ShoppingService } from 'services';
-let {PageComponent, PageHeader, PageFooter, PageView, Button, Dialog, Tabs, DataList, ImageBox } = controls;
+import { ShoppingService } from 'services';
+// let {PageComponent, PageHeader, PageFooter, PageView, Button, Dialog, Tabs, DataList, ImageBox } = controls;
+import { Tabs } from 'components/tabs';
+import { DataList } from 'components/dataList';
 
 export default function (page: Page) {
     let shop = page.createService(ShoppingService);
     const commented = 1, toComment = 0;
     class EvaluationComponent extends React.Component<{}, { activeTab }>{
-        //private currentTab = 0;
-        private dataList: controls.DataList;
+        private dataList: DataList;
         constructor(props) {
             super(props);
             this.state = { activeTab: 0 };
@@ -20,8 +21,8 @@ export default function (page: Page) {
         }
         render() {
             return (
-                <PageComponent>
-                    <PageHeader>
+                <div className="page">
+                    <header>
                         {defaultNavBar({ title: '商品评价' })}
                         <Tabs className="tabs"
                             onItemClick={(i) => {
@@ -36,14 +37,14 @@ export default function (page: Page) {
                                 <span>已评价</span>
                             ]}>
                         </Tabs>
-                    </PageHeader>
-                    <PageView className="container">
+                    </header>
+                    <section className="container">
                         <DataList ref={(o) => this.dataList = o} loadData={() => this.loadData()}
                             dataItem={(o: ProductComent) =>
                                 <div key={o.Id} className="products">
                                     <div className="item">
                                         <div data-bind="click:$parent.showProduct,tap:$parent.showProduct" className="image pull-left">
-                                            <ImageBox src={o.ImageUrl} className="img-responsive img-thumbnail" />
+                                            <img src={o.ImageUrl} className="img-responsive img-thumbnail" />
                                         </div>
                                         <div className="name">
                                             {o.Name}
@@ -72,8 +73,8 @@ export default function (page: Page) {
                                     <h4 className="text">{this.state.activeTab == toComment ? '暂无待评价商品' : '暂无已评价商品'}</h4>
                                 </div>
                             } />
-                    </PageView>
-                </PageComponent>
+                    </section>
+                </div>
             );
         }
     }
