@@ -3,7 +3,10 @@ import { Application as BaseApplication } from 'chitu.mobile';
 import errorHandle from 'errorHandle';
 import * as ui from 'ui';
 
-// import * as chitu from 'maishu-chitu';
+/** 监听 shoppingCart 错误  */
+shoppingCart.error.add((sender, error) => {
+    errorHandle(app, error);
+})
 
 /** 是否为 APP */
 let isCordovaApp = location.protocol === 'file:';

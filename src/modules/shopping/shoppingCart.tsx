@@ -6,7 +6,7 @@ export default async function (page: Page, hideMenu: boolean = false) {
 
     type ShoppingCartItemExt = ShoppingCartItem & { InputCount: number };
     interface ShoppingCartState {
-        items?: ShoppingCartItem[],
+        items?: ShoppingCartItemExt[],
         status?: 'normal' | 'edit',
         totalAmount?: number,
         deleteItems: Array<ShoppingCartItem>
@@ -22,9 +22,9 @@ export default async function (page: Page, hideMenu: boolean = false) {
 
         constructor(props) {
             super(props);
-            this.state = { deleteItems: [], items: shoppingCart.items.value, status: 'normal' };
+            this.state = { deleteItems: [], items: shoppingCart.items.value as ShoppingCartItemExt[], status: 'normal' };
             shoppingCart.onChanged(this, (value) => {
-                this.state.items = value;
+                this.state.items = value as ShoppingCartItemExt[];
                 this.setState(this.state);
             })
         }
@@ -64,14 +64,20 @@ export default async function (page: Page, hideMenu: boolean = false) {
             this.setState(this.state);
         }
         private onEditClick() {
+
+            let items = this.state.items as ShoppingCartItemExt[];
+
             if (this.state.status == 'normal') {
                 this.state.status = 'edit';
+
+                items.forEach(o => o.InputCount = o.Count);
                 this.setState(this.state);
+                
                 return Promise.resolve();
             }
 
             let shoppingCartItems = new Array<ShoppingCartItem>();
-            let items = this.state.items as ShoppingCartItemExt[];
+        
             let changeItems = items.filter(o => o.InputCount != o.Count);
             let counts = changeItems.map(o => o.InputCount);
 

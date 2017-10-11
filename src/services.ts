@@ -14,7 +14,7 @@ let config = {
         weixin: `${protocol}//${REMOTE_HOST}/UserWeiXin/`,
         account: `${protocol}//${REMOTE_HOST}/UserAccount/`,
     },
-    appKey: '59a0d63ab58cf427f90c7d3e',//'59c8e00a675d1b3414f83fc3',// 
+    appKey: '59c8e00a675d1b3414f83fc3',// '59a0d63ab58cf427f90c7d3e',//
     /** 调用服务接口超时时间，单位为秒 */
     ajaxTimeout: 30,
     pageSize: 10
@@ -591,6 +591,7 @@ export class ShoppingService extends Service {
 interface ShoppingCart {
     addItem: (item: ShoppingCartItem) => Promise<any>,
     setItemCount: (itemId: string, count: number) => Promise<any>,
+    setItemsCount: (itemIds: string[], count: number[]) => Promise<any>
     load: () => Promise<ShoppingCartItem[]>,
     clear: () => Promise<any>,
     selecteItem: (itemId: string) => Promise<any>,
@@ -599,7 +600,8 @@ interface ShoppingCart {
 
 
 class RemoteShoppintCart extends Service implements ShoppingCart {
-    private setItemCountTimeoutId;
+    // private setItemCountTimeoutId;
+    private timeids = {} as { [key: string]: number };
     private url(method: string) {
         return `${config.service.shop}ShoppingCart/${method}`;
     }
@@ -621,19 +623,24 @@ class RemoteShoppintCart extends Service implements ShoppingCart {
         return new Promise((resolve, rejct) => {
             //================================================================
             // 采用延时更新，减轻服务器负荷
-            if (this.setItemCountTimeoutId != null) {
-                window.clearTimeout(this.setItemCountTimeoutId);
+            let setItemCountTimeoutId = this.timeids[itemId];
+            if (setItemCountTimeoutId != null) {
+                window.clearTimeout(setItemCountTimeoutId);
             }
 
-            this.setItemCountTimeoutId = setTimeout(() => {
+            this.timeids[itemId] = setTimeout(() => {
 
                 this._setItemCount(itemId, count)
                     .then(() => resolve())
                     .catch(err => rejct(err));
 
-            }, 1000 * 10); // 延迟 10 秒更新
+            }, 1000 * 5); // 延迟 5 秒更新
             //================================================================
         })
+    }
+    setItemsCount(itemIds: string[], counts: number[]) {
+        let url = this.url('SetItemsCount');
+        return this.put(url, { ids: itemIds, counts });
     }
     load() {
         let url = this.url("Get");
@@ -675,6 +682,12 @@ class LocalShoppintCart implements ShoppingCart {
         localStorage.setItem(this.SHOPPING_CART_STORAGE_NAME, str);
         return Promise.resolve();
     }
+    setItemsCount(itemIds: string[], counts: number[]) {
+        for (let i = 0; i < itemIds.length; i++) {
+            this.setItemCount(itemIds[i], counts[i]);
+        }
+        return Promise.resolve();
+    }
     load(): Promise<ShoppingCartItem[]> {
         let str = localStorage.getItem(this.SHOPPING_CART_STORAGE_NAME);
         var items = str == null ? [] : JSON.parse(str);
@@ -705,7 +718,7 @@ class ShoppingCartService extends Service {
     private isLogin: boolean;
     private remote: ShoppingCart;
     private local: ShoppingCart;
-    private shoppingCar: ShoppingCart;
+    private shoppingCart: ShoppingCart;
 
     constructor() {
         super();
@@ -722,10 +735,10 @@ class ShoppingCartService extends Service {
             // 退出登录，清空本地数据
             this.local.clear();
             //================================
-            this.shoppingCar = this.isLogin ? this.remote : this.local;
+            this.shoppingCart = this.isLogin ? this.remote : this.local;
         });
 
-        this.shoppingCar = this.isLogin ? this.remote : this.local;
+        this.shoppingCart = this.isLogin ? this.remote : this.local;
         this.initData();
     }
 
@@ -792,15 +805,16 @@ class ShoppingCartService extends Service {
     }
 
     private async setItemCountByItem(item: ShoppingCartItem, count: number) {
-        await this.shoppingCar.setItemCount(item.Id, count);
+        await this.shoppingCart.setItemCount(item.Id, count);
         var shoopingCartItem = this.items.value.filter(o => o.Id == item.Id)[0];
         console.assert(shoopingCartItem != null);
         shoopingCartItem.Count = count;
         this.items.fire(this.items.value);
     }
-    private async setItemCountByProduct(product: Product, count: number) {
+    private async setItemCountByProduct(product: Product, count: number): Promise<any> {
         let shoppingCartItems = this._items.value;
         let shoppingCartItem = shoppingCartItems.filter(o => o.ProductId == product.Id && o.Type == null)[0];
+        let result: Promise<any>;
         if (shoppingCartItem == null) {
             shoppingCartItem = {
                 Id: guid(),
@@ -812,15 +826,16 @@ class ShoppingCartService extends Service {
                 Selected: true,
                 Price: product.Price,
             };
-            this.shoppingCar.addItem(shoppingCartItem);
+            result = this.shoppingCart.addItem(shoppingCartItem);
             shoppingCartItems.push(shoppingCartItem);
         }
         else {
-            this.shoppingCar.setItemCount(shoppingCartItem.Id, count);
+            result = this.shoppingCart.setItemCount(shoppingCartItem.Id, count);
             shoppingCartItem.Count = count;
         }
 
         this._items.value = shoppingCartItems;
+        return result;
     }
 
     get items() {
@@ -838,7 +853,7 @@ class ShoppingCartService extends Service {
     }
 
     selectItem(itemId: string) {
-        this.shoppingCar.selecteItem(itemId);
+        this.shoppingCart.selecteItem(itemId);
         let item = this.items.value.filter(o => o.Id == itemId)[0];
         console.assert(item != null);
 
@@ -847,7 +862,7 @@ class ShoppingCartService extends Service {
     }
 
     unselectItem(itemId: string) {
-        this.shoppingCar.selecteItem(itemId);
+        this.shoppingCart.selecteItem(itemId);
         let item = this.items.value.filter(o => o.Id == itemId)[0];
         console.assert(item != null);
 
@@ -855,14 +870,21 @@ class ShoppingCartService extends Service {
         this.items.fire(this.items.value);
     }
 
-    setItemsCount(items: ShoppingCartItem[], counts) {
-        let promises = new Array<Promise<any>>();
-        for (let i = 0; i < items.length; i++) {
-            let p = this.setItemCount(items[i], counts[i]);
-            promises.push(p)
-        }
+    setItemsCount(items: ShoppingCartItem[], counts: number[]) {
 
-        return Promise.all(promises);
+        //===============================================
+        // 将购物车中的 item 找处理，并修改
+        let itemIds = items.map(o=>o.Id);
+        for (let i = 0; i < itemIds.length; i++) {
+            let item = this.items.value.filter(o => o.Id == itemIds[i])[0];
+            console.assert(item != null);
+            item.Count = counts[i];
+        }
+        this.items.fire(this.items.value);
+
+        //===============================================
+
+        return this.shoppingCart.setItemsCount(itemIds, counts);
     }
 
     selectAll() {
@@ -1290,7 +1312,7 @@ class UserData {
 
 
 export let userData = new UserData();;
-export　let shoppingCart = new ShoppingCartService();
+export let shoppingCart = new ShoppingCartService();
 
 userData.userToken.add((value) => {
     if (!value)
