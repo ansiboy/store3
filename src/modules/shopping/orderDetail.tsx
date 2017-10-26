@@ -3,8 +3,6 @@ import { ShoppingService, AccountService } from 'services';
 import { SetAddress, ReceiptListRouteValues } from 'modules/user/receiptList';
 import * as ui from 'ui';
 
-let { PageComponent, PageHeader, PageFooter, PageView, Button, ImageBox } = controls;
-
 export default function (page: Page) {
     let shopping = page.createService(ShoppingService);
     class OrderDetailPage extends React.Component<{ order: Order }, { order: Order }> {
@@ -28,9 +26,9 @@ export default function (page: Page) {
         render() {
             let order = this.state.order;
             return (
-                <PageComponent>
-                    <PageHeader>{defaultNavBar({ title: '订单详情' })}</PageHeader>
-                    <PageView>
+                <div className="page">
+                    <header>{defaultNavBar({ title: '订单详情' })}</header>
+                    <section>
                         <div className="container order" style={{ paddingTop: 10 }}>
                             <div className="list">
 
@@ -70,11 +68,14 @@ export default function (page: Page) {
 
                                 {order.Status == 'WaitingForPayment' ?
                                     <div className="form-group">
-                                        <Button onClick={() => this.purchase()} className="btn btn-block btn-primary">微信支付</Button>
+                                        <button className="btn btn-block btn-primary"
+                                            ref={(e: HTMLButtonElement) => ui.buttonOnClick(() => this.purchase())}>微信支付</button>
                                     </div> : null}
                                 {order.Status == 'Send' ?
                                     <div className="form-group">
-                                        <Button onClick={() => this.confirmReceived()} confirm={'你确定收到货了吗？'} className="btn btn-primary btn-block">确认收货</Button>
+                                        <button className="btn btn-primary btn-block"
+                                            ref={(e: HTMLButtonElement) => e ? ui.buttonOnClick(() => this.confirmReceived(), { confirm: '你确定收到货了吗？' }) : null}>
+                                            确认收货</button>
                                     </div> : null}
                             </div>
                         </div>
@@ -98,7 +99,8 @@ export default function (page: Page) {
                                         <div className="row">
                                             <div className="col-xs-4" style={{ paddingRight: 0 }}>
                                                 <a href={`#home_product?id=${o.ProductId}`}>
-                                                    <ImageBox src={o.ImageUrl} className="img-responsive" />
+                                                    <img src={o.ImageUrl} className="img-responsive"
+                                                        ref={(e: HTMLImageElement) => e ? ui.renderImage(e) : null} />
                                                 </a>
                                             </div>
                                             <div className="col-xs-8">
@@ -125,10 +127,10 @@ export default function (page: Page) {
                                     }}
                                     className="btn btn-block btn-default">取消订单</button>
                             </div> : null}
-                    </PageView>
-                    <PageFooter>
-                    </PageFooter>
-                </PageComponent>
+                    </section>
+                    <footer>
+                    </footer>
+                </div>
             );
         }
     }

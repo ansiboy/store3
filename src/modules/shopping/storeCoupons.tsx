@@ -2,8 +2,6 @@ import { Page, defaultNavBar } from 'site';
 import { ShoppingService } from 'services'
 import * as ui from 'ui';
 
-let { PageComponent, PageHeader, PageFooter, PageView, DataList, ImageBox, Tabs } = controls;
-
 export default function (page: Page) {
     let shopping = page.createService(ShoppingService);
     class StoreCouponsPage extends React.Component<{ coupons: Coupon[] }, {}>{
@@ -13,11 +11,11 @@ export default function (page: Page) {
         render() {
             let coupons = this.props.coupons;
             return (
-                <PageComponent>
-                    <PageHeader>
+                <div>
+                    <header>
                         {defaultNavBar({ title: '店铺优惠劵' })}
-                    </PageHeader>
-                    <PageView>
+                    </header>
+                    <section>
                         {coupons.length > 0 ?
                             <hr />
                             :
@@ -57,8 +55,8 @@ export default function (page: Page) {
                                 <hr />
                             </div>
                         )}
-                    </PageView>
-                </PageComponent>
+                    </section>
+                </div>
             );
         }
     }

@@ -4,15 +4,15 @@ import { ShoppingService } from 'services';
 export interface RegionsPageRouteValues {
     province: Region,
     city: Region,
-    country: Region,
-    selecteRegion: (province: Region, city: Region, country: Region) => void
+    county: Region,
+    selecteRegion: (province: Region, city: Region, county: Region) => void
 }
 export default function (page: Page) {
     let shop = page.createService(ShoppingService);
     let routeValues = (page.routeData.values || {}) as RegionsPageRouteValues;
     interface RegiosPageState {
         title: string, cities: Region[], countries: Region[],
-        currentProvince?: Region, currentCity?: Region, currentCountry?: Region
+        currentProvince?: Region, currentCity?: Region, currentCounty?: Region
     }
 
     class RegiosPage extends React.Component<{ provinces: Region[] }, RegiosPageState>
@@ -28,7 +28,7 @@ export default function (page: Page) {
             this.state = {
                 title: '请选择省', cities: [], countries: [],
                 currentProvince: routeValues.province, currentCity: routeValues.city,
-                currentCountry: routeValues.country
+                currentCounty: routeValues.county
             };
         }
         showCities(province: Region) {
@@ -92,16 +92,16 @@ export default function (page: Page) {
             }, 100);
             this.activeViewIndex = this.activeViewIndex + 1;
         }
-        selectCountry(country: Region) {
-            this.state.currentCountry = country;
+        selectCounty(county: Region) {
+            this.state.currentCounty = county;
             this.setState(this.state);
             if (!routeValues.selecteRegion) {
                 return;
             }
             
-            let {currentProvince, currentCity, currentCountry } = this.state;
-            routeValues.selecteRegion(currentProvince, currentCity, currentCountry);
-            app.back();
+            let {currentProvince, currentCity, currentCounty } = this.state;
+            routeValues.selecteRegion(currentProvince, currentCity, currentCounty);
+            app.closeCurrentPage();
         }
         render() {
             let provinces = this.props.provinces;
@@ -139,9 +139,9 @@ export default function (page: Page) {
                         <ul className="list-group">
                             {countries.map(o =>
                                 <li className="list-group-item" key={o.Id}
-                                    onClick={() => this.selectCountry(o)}>
+                                    onClick={() => this.selectCounty(o)}>
                                     {o.Name}
-                                    {this.state.currentCountry.Id == o.Id ? <i className="icon-ok pull-right"></i> : null}
+                                    {this.state.currentCounty.Id == o.Id ? <i className="icon-ok pull-right"></i> : null}
                                 </li>
                             )}
                         </ul>

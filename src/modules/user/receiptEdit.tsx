@@ -63,15 +63,15 @@ export default async function (page: Page) {
             let r = this.state.receiptInfo;
             let routeValues: RegionsPageRouteValues = {
                 province: { Id: r.ProvinceId, Name: r.ProvinceName }, city: { Id: r.CityId, Name: r.CityName },
-                country: { Id: r.CountyId, Name: r.CountyName },
-                selecteRegion: (province, city, country) => {
+                county: { Id: r.CountyId, Name: r.CountyName },
+                selecteRegion: (province, city, county) => {
                     r.ProvinceName = province.Name;
                     r.ProvinceId = province.Id;
                     r.CityName = city.Name;
                     r.CityId = city.Id;
-                    r.CountyName = country.Name;
-                    r.CountyId = country.Id;
-                    r.RegionId = country.Id;
+                    r.CountyName = county.Name;
+                    r.CountyId = county.Id;
+                    r.RegionId = county.Id;
                     this.setState(this.state);
                 }
             };

@@ -1,11 +1,14 @@
 import { Page, Menu, app } from 'site';
 import { MemberService, userData } from 'services';
+
+
 import * as ui from 'ui';
 
 export default async function (page: Page) {
 
     let member = page.createService(MemberService);
-    let userInfo = await member.userInfo();
+    let userInfo = userData.userInfo.value || {} as UserInfo; //await member.userInfo();
+
     interface PageState {
         userInfo: UserInfo;
         notPaidCount: number;
@@ -70,6 +73,13 @@ export default async function (page: Page) {
             app.redirect('home_index');
         }
 
+        componentDidMount() {
+            userData.userInfo.subscribe(this, (value) => {
+                this.state.userInfo = value;
+                this.setState(this.state);
+            })
+        }
+
         render() {
             let userInfo = this.state.userInfo;
             let balance = this.state.balance;
@@ -129,25 +139,25 @@ export default async function (page: Page) {
                         <div className="list-group">
                             <a className="list-group-item" href="#user_receiptList">
                                 <span className="icon-chevron-right pull-right"></span>
-                                <span data-bind="text: value,visible:value" className="pull-right value" style={{ display: 'none' }}></span>
+                                <span className="pull-right value" style={{ display: 'none' }}></span>
                                 <strong>收货地址</strong>
                             </a>
 
                             <a className="list-group-item" href="#user_favors">
                                 <span className="icon-chevron-right pull-right"></span>
-                                <span data-bind="text: value,visible:value" className="pull-right value" style={{ display: 'none' }}></span>
+                                <span className="pull-right value" style={{ display: 'none' }}></span>
                                 <strong>我的收藏</strong>
                             </a>
 
                             <a className="list-group-item" href="#user_scoreList">
                                 <span className="icon-chevron-right pull-right"></span>
-                                <span data-bind="text: value,visible:value" className="pull-right value" style={{ display: 'none' }}>0</span>
+                                <span className="pull-right value" style={{ display: 'none' }}>0</span>
                                 <strong>我的积分</strong>
                             </a>
 
                             <a className="list-group-item" href="#user_coupon">
                                 <span className="icon-chevron-right pull-right"></span>
-                                <span data-bind="text: value,visible:value" className="pull-right value" style={{ display: 'none' }}>undefined</span>
+                                <span className="pull-right value" style={{ display: 'none' }}>undefined</span>
                                 <strong>我的优惠券</strong>
                             </a>
                         </div>
@@ -155,7 +165,7 @@ export default async function (page: Page) {
                         <div className="list-group">
                             <a className="list-group-item" href="#user_accountSecurity_index">
                                 <span className="icon-chevron-right pull-right"></span>
-                                <span data-bind="text: value,visible:value" className="pull-right value" style={{ display: 'none' }}></span>
+                                <span className="pull-right value" style={{ display: 'none' }}></span>
                                 <strong>账户安全</strong>
                             </a>
 

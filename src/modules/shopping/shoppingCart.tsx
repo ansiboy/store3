@@ -45,7 +45,8 @@ export default async function (page: Page, hideMenu: boolean = false) {
             return p;
         }
         private deleteSelectedItems() {
-            return shoppingCart.removeAll();
+            let itemIds = this.state.deleteItems.map(o => o.Id);
+            return shoppingCart.removeItems(itemIds);
         }
         private decreaseCount(item: ShoppingCartItemExt) {
             if (item.Count == 1) {
@@ -72,12 +73,12 @@ export default async function (page: Page, hideMenu: boolean = false) {
 
                 items.forEach(o => o.InputCount = o.Count);
                 this.setState(this.state);
-                
+
                 return Promise.resolve();
             }
 
             let shoppingCartItems = new Array<ShoppingCartItem>();
-        
+
             let changeItems = items.filter(o => o.InputCount != o.Count);
             let counts = changeItems.map(o => o.InputCount);
 

@@ -14,7 +14,7 @@ let config = {
         weixin: `${protocol}//${REMOTE_HOST}/UserWeiXin/`,
         account: `${protocol}//${REMOTE_HOST}/UserAccount/`,
     },
-    appKey: '59c8e00a675d1b3414f83fc3',// '59a0d63ab58cf427f90c7d3e',//
+    appKey: '59c8e00a675d1b3414f83fc3',//'59a0d63ab58cf427f90c7d3e',//
     /** 调用服务接口超时时间，单位为秒 */
     ajaxTimeout: 30,
     pageSize: 10
@@ -595,7 +595,8 @@ interface ShoppingCart {
     load: () => Promise<ShoppingCartItem[]>,
     clear: () => Promise<any>,
     selecteItem: (itemId: string) => Promise<any>,
-    unselecteItem: (itemId: string) => Promise<any>
+    unselecteItem: (itemId: string) => Promise<any>,
+    removeItems: (itemIds: string[]) => Promise<any>
 }
 
 
@@ -634,7 +635,7 @@ class RemoteShoppintCart extends Service implements ShoppingCart {
                     .then(() => resolve())
                     .catch(err => rejct(err));
 
-            }, 1000 * 5); // 延迟 5 秒更新
+            }, 1000 * 3); // 延迟 3 秒更新
             //================================================================
         })
     }
@@ -659,6 +660,10 @@ class RemoteShoppintCart extends Service implements ShoppingCart {
         let item = { Id: itemId, Selected: false } as ShoppingCartItem;
         return this.put(url, { item });
     }
+    removeItems(itemIds: string[]): Promise<any> {
+        let url = this.url('RemoveItems');
+        return this.delete(url, { itemIds });
+    }
 
 }
 
@@ -680,22 +685,19 @@ class LocalShoppintCart implements ShoppingCart {
 
         let str = JSON.stringify(items);
         localStorage.setItem(this.SHOPPING_CART_STORAGE_NAME, str);
-        return Promise.resolve();
     }
-    setItemsCount(itemIds: string[], counts: number[]) {
+    async setItemsCount(itemIds: string[], counts: number[]) {
         for (let i = 0; i < itemIds.length; i++) {
             this.setItemCount(itemIds[i], counts[i]);
         }
-        return Promise.resolve();
     }
-    load(): Promise<ShoppingCartItem[]> {
+    async  load(): Promise<ShoppingCartItem[]> {
         let str = localStorage.getItem(this.SHOPPING_CART_STORAGE_NAME);
         var items = str == null ? [] : JSON.parse(str);
-        return Promise.resolve(items);
+        return items;
     }
-    clear(): Promise<any> {
+    async clear(): Promise<any> {
         localStorage.removeItem(this.SHOPPING_CART_STORAGE_NAME);
-        return Promise.resolve();
     }
     async selecteItem(itemId: string): Promise<any> {
         let items = await this.load();
@@ -709,7 +711,12 @@ class LocalShoppintCart implements ShoppingCart {
         console.assert(item != null);
         item.Selected = false;
     }
-
+    async removeItems(itemIds: string[]): Promise<any> {
+        let items = await this.load();;
+        items = items.filter(o => itemIds.indexOf(o.Id) < 0);
+        let str = JSON.stringify(items);
+        localStorage.setItem(this.SHOPPING_CART_STORAGE_NAME, str);
+    }
 }
 
 class ShoppingCartService extends Service {
@@ -874,7 +881,7 @@ class ShoppingCartService extends Service {
 
         //===============================================
         // 将购物车中的 item 找处理，并修改
-        let itemIds = items.map(o=>o.Id);
+        let itemIds = items.map(o => o.Id);
         for (let i = 0; i < itemIds.length; i++) {
             let item = this.items.value.filter(o => o.Id == itemIds[i])[0];
             console.assert(item != null);
@@ -903,12 +910,6 @@ class ShoppingCartService extends Service {
         return this.save();
     }
 
-    removeAll() {
-        this._items.value = [];
-        this.save();
-        return Promise.resolve();
-    }
-
     get productsCount() {
         let count = 0;
         this._items.value.forEach(o => count = count + o.Count);
@@ -922,9 +923,16 @@ class ShoppingCartService extends Service {
     }
 
     /*移除购物车中的多个产品*/
-    removeItems(productIds: string[]): Promise<any> {
-        this._items.value = this._items.value.filter(o => productIds.indexOf(o.ProductId) < 0);
-        return this.save();
+    async removeItems(itemIds: string[]): Promise<any> {
+        await this.shoppingCart.removeItems(itemIds);
+        let items = this._items.value.filter(o => itemIds.indexOf(o.Id) < 0);
+        this._items.value = items;
+    }
+
+    async calculateShoppingCartItems() {
+        let url = this.url('Calculate'); //`${config.service.shop}ShoppingCart/Calculate`;
+        let result = await this.get<ShoppingCartItem[]>(url);
+        return result;
     }
 
 
@@ -1053,13 +1061,13 @@ export class AccountService extends Service {
     }
 }
 
-function createWeixinClient() {
+export function createWeixinClient() {
     return new Promise<jweixin>((resolve, reject) => {
         let weixin = new WeiXinService();
         var config = {
             debug: false,
             nonceStr: 'mystore',
-            jsApiList: ['onMenuShareTimeline', 'onMenuShareAppMessage', 'getLocation']
+            jsApiList: ['onMenuShareTimeline', 'onMenuShareAppMessage', 'getLocation', 'chooseImage', 'getLocalImgData']
         };
 
         requirejs(['jweixin'], function (wx: jweixin) {
@@ -1080,9 +1088,10 @@ function createWeixinClient() {
             reject(err);
         })
     })
-
-
 }
+
+var ua = navigator.userAgent.toLowerCase();
+export let isWeixin = (ua.match(/MicroMessenger/i) as any) == 'micromessenger';
 
 export class LocationService extends Service {
     private MSG_CANNT_GET_ADDRESS = '暂时获取不到位置信息';
@@ -1096,8 +1105,7 @@ export class LocationService extends Service {
 
     async coordinate(): Promise<{ lat: number, lon: number }> {
         return new Promise<{ lat: number, lon: number }>(async (resolve, reject) => {
-            var ua = navigator.userAgent.toLowerCase();
-            let isWeixin = (ua.match(/MicroMessenger/i) as any) == 'micromessenger';
+
             if (isWeixin) {
                 let wx = await createWeixinClient();
                 wx.getLocation({
@@ -1255,6 +1263,7 @@ class UserData {
     private _nickName = new ValueStore<string>();
     private _shoppingCartItems = new ValueStore<ShoppingCartItem[]>();
     private _userToken = new ValueStore<string>();
+    private _userInfo = new ValueStore<UserInfo>();
 
     constructor() {
         this.userToken.add((value) => {
@@ -1308,6 +1317,10 @@ class UserData {
     get userToken() {
         return this._userToken;
     }
+
+    get userInfo() {
+        return this._userInfo;
+    }
 }
 
 
@@ -1344,14 +1357,6 @@ userData.userToken.add((value) => {
         userData.notPaidCount.value = data.NotPaidCount;
     });
 
-    // userData.shoppingCartItems.add(value => {
-    //     //==============================================
-    //     // Price >0 的为商品，<= 0 的为赠品，折扣
-    //     let sum = 0;
-    //     value.filter(o => o.Price > 0).forEach(o => sum = sum + o.Count);
-    //     userData.productsCount.value = sum;
-    //     //==============================================
-    // })
 });
 
 userData.userToken.value = localStorage.getItem('userToken');

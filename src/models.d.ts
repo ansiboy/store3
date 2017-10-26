@@ -159,9 +159,14 @@ interface News {
 interface UserInfo {
     Id: string;
     NickName: string;
-    Country: string;
+
+    County: string;
     Province: string;
     City: string;
+    CountyId: string;
+    ProvinceId: string,
+    CityId: string,
+
     HeadImageUrl: string;
     Gender: string;
     UserId: string;

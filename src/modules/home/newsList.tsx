@@ -1,7 +1,6 @@
 import { Page, defaultNavBar, Menu, app } from 'site';
 import { StationService } from 'services';
-
-let { DataList, ImageBox, PageComponent, PageHeader, PageFooter, PageView, PullDownIndicator } = controls;
+import { DataList } from 'components/dataList';
 
 export default function (page: Page) {
     let station = page.createService(StationService);
@@ -15,24 +14,24 @@ export default function (page: Page) {
         }
         render() {
             return (
-                <PageComponent>
-                    <PageHeader>
+                <div className="page">
+                    <header>
                         {(defaultNavBar({ title: '微资讯', showBackButton: false }))}
-                    </PageHeader>
-                    <PageFooter>
+                    </header>
+                    <footer>
                         <Menu pageName={page.name} />
-                    </PageFooter>
-                    <PageView className="main">
+                    </footer>
+                    <section className="main">
                         <DataList loadData={(i) => this.loadNewsList(i)}
                             dataItem={(o: News) =>
                                 <a key={o.Id} className="item" onClick={() => app.redirect(`home_news?id=${o.Id}`)}>
-                                    <ImageBox src={o.ImgUrl} className="img-responsive" />
+                                    <img src={o.ImgUrl} className="img-responsive" ref={(e: HTMLImageElement) => e ? ui.renderImage(e) : null} />
                                     <div className="title">{o.Title}</div>
                                 </a>
                             }
                         />
-                    </PageView>
-                </PageComponent>
+                    </section>
+                </div>
             );
         }
     }

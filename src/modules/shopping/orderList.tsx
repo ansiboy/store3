@@ -105,7 +105,7 @@ export default function (page: Page) {
             return (
                 <div>
                     <header>
-                        {defaultNavBar({ title: '我的订单', back: () => app.redirect('user_index') })}
+                        {defaultNavBar({ title: '我的订单', back: () => app.back() })}
                         <Tabs className="tabs" defaultActiveIndex={defaultActiveIndex} onItemClick={(index) => this.activeItem(index)}
                             scroller={() => this.dataView} >
                             <span>全部</span>

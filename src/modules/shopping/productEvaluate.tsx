@@ -1,6 +1,7 @@
 import { Page, defaultNavBar } from 'site';
 import { ShoppingService } from 'services';
-let { PageComponent, PageHeader, PageFooter, PageView, Button, ImageFileSelector, ImageBox } = controls;
+import{ImageFileSelector} from 'components/ImageFileSelector';
+// let { PageComponent, PageHeader, PageFooter, PageView, Button, ImageFileSelector, ImageBox } = controls;
 
 export type RouteValues = { orderDetailId: string, productImageUrl: string };
 export default function (page: Page) {
@@ -37,7 +38,7 @@ export default function (page: Page) {
     class ProductEvaluate extends React.Component<RouteValues,
         { evaluation: string, anonymous: boolean }>{
 
-        private imageFileSelector: controls.ImageFileSelector;
+        private imageFileSelector: ImageFileSelector;
 
         constructor(props) {
             super(props);
@@ -55,21 +56,25 @@ export default function (page: Page) {
         render() {
             let evaluation = this.state.evaluation || '';
             return (
-                <PageComponent>
-                    <PageHeader>
+                <div className="page">
+                    <header>
                         {defaultNavBar({ title: '商品评价' })}
-                    </PageHeader>
-                    <PageFooter>
+                    </header>
+                    <footer>
                         <div className="container" style={{ paddingTop: 10, paddingBottom: 10, height: 50 }}>
-                            <Button onClick={() => this.submit()} className="btn btn-primary btn-block" confirm={'确定要发表评价吗？'}>提交</Button>
+                            <button className="btn btn-primary btn-block"
+                                ref={(e: HTMLButtonElement) => {
+                                    if (!e) return;
+                                    ui.buttonOnClick(() => this.submit(), { confirm: '确定要发表评价吗？' })
+                                }}>提交</button>
                         </div>
-                    </PageFooter>
-                    <PageView>
+                    </footer>
+                    <section>
                         <div className="container">
                             <div className="row">
                                 <div className="col-xs-4">
-                                    <ImageBox src={this.props.productImageUrl} data-bind="attr:{src:productImageUrl}"
-                                        className="img-responsive img-thumbnail" />
+                                    <img src={this.props.productImageUrl} className="img-responsive img-thumbnail"
+                                        ref={(e: HTMLImageElement) => e ? ui.renderImage(e) : null} />
                                 </div>
                                 <div className="col-xs-8" style={{ paddingLeft: 0 }}>
                                     <label>评分</label>
@@ -106,13 +111,13 @@ export default function (page: Page) {
                                 </div>
                             </div>
                         </div>
-                    </PageView>
-                </PageComponent>
+                    </section>
+                </div>
             );
         }
     }
 
-    let {orderDetailId, productImageUrl} = page.routeData.values as RouteValues;
+    let { orderDetailId, productImageUrl } = page.routeData.values as RouteValues;
     ReactDOM.render(<ProductEvaluate orderDetailId={orderDetailId} productImageUrl={productImageUrl} />, page.element);
 }
 

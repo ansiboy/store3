@@ -29,12 +29,13 @@ module.exports = function (grunt) {
                     // 服务器端口号
                     port: 8029,
                     // 服务器地址(可以使用主机名localhost，也能使用IP)
-                    hostname: '192.168.1.9',
+                    // hostname: '192.168.1.9',
+                    hostname: '127.0.0.1',
                     // keepalive: true,
                     livereload: 35729,
                     // 物理路径(默认为. 即根目录) 注：使用'.'或'..'为路径的时，可能会返回403 Forbidden. 此时将该值改为相对路径 如：/grunt/reloard。
                     base: 'out/www',
-                    //open: true,
+                    open: false,
                     // protocol: 'https',
                     key: grunt.file.read('cert/server_nopwd.key').toString(),
                     cert: grunt.file.read('cert/server.crt').toString(),

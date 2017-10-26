@@ -1,4 +1,4 @@
-import { Page, Menu, app, env } from 'site';
+import { Page, Menu, app } from 'site';
 import { StationService, shoppingCart, ShoppingService, WeiXinService, imageUrl, LocationService } from 'services';
 import Carousel = require('core/carousel');
 import Hammer = require('hammer');
@@ -119,7 +119,8 @@ export default async function (page: Page) {
         }
 
         redirect(o: Product) {
-            location.hash = `#home_product?id=${o.Id}`;
+            // location.hash = `#home_product?id=${o.Id}`;
+            app.redirect(`home_product?id=${o.Id}`);
             return;
         }
 

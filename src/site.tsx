@@ -276,9 +276,3 @@ export function formatDate(date: Date) {
 }
 
 
-export let env = {
-    isWeiXin() {
-        var ua = navigator.userAgent.toLowerCase();
-        return (ua.match(/MicroMessenger/i) as any) == 'micromessenger';
-    }
-}
