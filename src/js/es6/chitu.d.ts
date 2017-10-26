@@ -44,7 +44,7 @@ declare namespace chitu {
         private getPageByRouteString(routeString);
         showPage(routeString: string, args?: any): Page;
         setLocationHash(routeString: string): void;
-        private closeCurrentPage();
+        closeCurrentPage();
         private clearPageStack();
         redirect(routeString: string, args?: any): Page;
         back(args?: any): void;

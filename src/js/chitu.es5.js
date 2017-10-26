@@ -1,4 +1,10 @@
 (function(factory) { 
+            if (typeof require === 'function' && typeof exports === 'object' && typeof module === 'object') { 
+                // [1] CommonJS/Node.js 
+                var target = module['exports'] || exports; 
+                var chitu = factory(target, require);
+                Object.assign(target,chitu);
+            } else 
         if (typeof define === 'function' && define['amd']) { 
             define(factory);  
         } else { 
@@ -119,20 +125,37 @@ var chitu;
     var VIEW_LOCATION_FORMATER = '{controller}/{action}';
 
     var Application = function () {
-        function Application() {
+        function Application(args) {
             _classCallCheck(this, Application);
 
             this.pageCreated = chitu.Callbacks();
             this.pageType = chitu.Page;
-            this.pageDisplayType = chitu.PageDisplayerImplement;
+            this.pageDisplayType = PageDisplayerImplement;
             this._runned = false;
             this.page_stack = new Array();
-            this.cachePages = {};
             this.fileBasePath = DEFAULT_FILE_BASE_PATH;
             this.backFail = chitu.Callbacks();
+            args = args || {};
+            this._siteMap = args.siteMap;
+            if (this._siteMap) {
+                if (this._siteMap.root == null) throw chitu.Errors.siteMapRootCanntNull();
+                this._siteMap.root.level = 0;
+                this.setChildrenParent(this._siteMap.root);
+            }
         }
 
         _createClass(Application, [{
+            key: 'setChildrenParent',
+            value: function setChildrenParent(parent) {
+                if (parent == null) throw chitu.Errors.argumentNull('parent');
+                var children = parent.children || [];
+                for (var i = 0; i < children.length; i++) {
+                    children[i].parent = parent;
+                    children[i].level = parent.level + 1;
+                    this.setChildrenParent(children[i]);
+                }
+            }
+        }, {
             key: 'parseRouteString',
             value: function parseRouteString(routeString) {
                 var routeData = new RouteData(this.fileBasePath, routeString);
@@ -141,11 +164,13 @@ var chitu;
         }, {
             key: 'on_pageCreated',
             value: function on_pageCreated(page) {
-                return chitu.fireCallback(this.pageCreated, this, page);
+                return this.pageCreated.fire(this, page);
             }
         }, {
             key: 'createPage',
-            value: function createPage(routeData) {
+            value: function createPage(routeData, actionArguments) {
+                var _this = this;
+
                 var previous_page = this.pages[this.pages.length - 1];
                 var element = this.createPageElement(routeData);
                 var displayer = new this.pageDisplayType(this);
@@ -155,8 +180,16 @@ var chitu;
                     previous: previous_page,
                     routeData: routeData,
                     displayer: displayer,
-                    element: element
+                    element: element,
+                    actionArguments: actionArguments
                 });
+                var page_onclosed = function page_onclosed(sender) {
+                    _this.page_stack = _this.page_stack.filter(function (o) {
+                        return o != sender;
+                    });
+                    page.closed.remove(page_onclosed);
+                };
+                page.closed.add(page_onclosed);
                 this.on_pageCreated(page);
                 return page;
             }
@@ -182,8 +215,7 @@ var chitu;
                 }
                 var routeString;
                 if (location.hash.length > 1) routeString = location.hash.substr(1);
-                var routeData = this.parseRouteString(routeString);
-                var page = this.getPage(routeData.pageName);
+                var page = this.getPageByRouteString(routeString);
                 var previousPageIndex = this.page_stack.length - 2;
                 if (page != null && this.page_stack.indexOf(page) == previousPageIndex) {
                     this.closeCurrentPage();
@@ -194,13 +226,13 @@ var chitu;
         }, {
             key: 'run',
             value: function run() {
-                var _this = this;
+                var _this2 = this;
 
                 if (this._runned) return;
                 var app = this;
                 this.hashchange();
-                window.addEventListener('hashchange', function () {
-                    _this.hashchange();
+                window.addEventListener('popstate', function () {
+                    _this2.hashchange();
                 });
                 this._runned = true;
             }
@@ -214,6 +246,15 @@ var chitu;
                 return null;
             }
         }, {
+            key: 'getPageByRouteString',
+            value: function getPageByRouteString(routeString) {
+                for (var i = this.page_stack.length - 1; i >= 0; i--) {
+                    var page = this.page_stack[i];
+                    if (page != null && page.routeData.routeString == routeString) return page;
+                }
+                return null;
+            }
+        }, {
             key: 'showPage',
             value: function showPage(routeString, args) {
                 if (!routeString) throw chitu.Errors.argumentNull('routeString');
@@ -222,47 +263,52 @@ var chitu;
                     throw chitu.Errors.noneRouteMatched(routeString);
                 }
                 Object.assign(routeData.values, args || {});
-                var page = this.cachePages[routeData.pageName];
-                if (page == null) {
-                    page = this.createPage(routeData);
-                    if (page.allowCache) {
-                        this.cachePages[routeData.pageName] = page;
+                var page = this.createPage(routeData, args);
+                if (this.currentPage != null) {
+                    var pageIsParenPage = false;
+                    var newPageNode = this.findSiteMapNode(page.name);
+                    var currentPageNode = this.findSiteMapNode(this.currentPage.name);
+                    if (newPageNode.level < currentPageNode.level) {
+                        this.closeCurrentPage();
                     }
                 }
-                if (page == this.currentPage) {
-                    return page;
-                }
-                var previous = this.currentPage;
-                this.page_stack.push(page);
-                if (this.page_stack.length > PAGE_STACK_MAX_SIZE) {
-                    var c = this.page_stack.shift();
-                    if (!this.cachePages[routeData.pageName]) c.close();
-                }
-                page.previous = previous;
+                this.pushPage(page);
                 page.show();
                 return page;
             }
         }, {
+            key: 'pushPage',
+            value: function pushPage(page) {
+                var previous = this.currentPage;
+                this.page_stack.push(page);
+                if (this.page_stack.length > PAGE_STACK_MAX_SIZE) {
+                    var c = this.page_stack.shift();
+                }
+                page.previous = previous;
+            }
+        }, {
+            key: 'findSiteMapNode',
+            value: function findSiteMapNode(pageName) {
+                var stack = new Array();
+                stack.push(this._siteMap.root);
+                while (stack.length > 0) {
+                    var node = stack.pop();
+                    if (node.pageName == pageName) {
+                        return node;
+                    }
+                }
+            }
+        }, {
             key: 'setLocationHash',
             value: function setLocationHash(routeString) {
-                if (window.location.hash == '#' + routeString) {
-                    return;
-                }
-                var location = window.location;
-                location.skipHashChanged = true;
-                location.hash = '#' + routeString;
+                history.pushState(routeString, "", '#' + routeString);
             }
         }, {
             key: 'closeCurrentPage',
             value: function closeCurrentPage() {
                 if (this.page_stack.length <= 0) return;
                 var page = this.page_stack.pop();
-                if (page.allowCache) {
-                    page.hide();
-                } else {
-                    page.close();
-                    if (this.cachePages[page.name]) this.cachePages[page.name] = null;
-                }
+                page.close();
                 if (this.currentPage != null) this.setLocationHash(this.currentPage.routeData.routeString);
             }
         }, {
@@ -281,12 +327,34 @@ var chitu;
         }, {
             key: 'back',
             value: function back() {
+                history.back();
+            }
+        }, {
+            key: '_back',
+            value: function _back() {
                 var args = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : undefined;
 
-                this.closeCurrentPage();
-                if (this.page_stack.length == 0) {
-                    chitu.fireCallback(this.backFail, this, {});
+                if (this.currentPage == null) {
+                    this.backFail.fire(this, null);
+                    return;
                 }
+                var routeData = this.currentPage.routeData;
+                this.closeCurrentPage();
+                if (this.page_stack.length > 0) {
+                    return;
+                }
+                if (this._siteMap == null) {
+                    this.backFail.fire(this, null);
+                    return;
+                }
+                var siteMapNode = this.findSiteMapNode(routeData.pageName);
+                if (siteMapNode != null && siteMapNode.parent != null) {
+                    var p = siteMapNode.parent;
+                    var routeString = typeof p.routeString == 'function' ? p.routeString() : p.routeString;
+                    this.redirect(routeString);
+                    return;
+                }
+                this.backFail.fire(this, null);
             }
         }, {
             key: 'currentPage',
@@ -419,7 +487,7 @@ var chitu;
         }, {
             key: 'actionTypeError',
             value: function actionTypeError(pageName) {
-                var msg = 'The action in page \'' + pageName + '\' is expect as function or Class.';
+                var msg = 'The action in page \'' + pageName + '\' is expect as function.';
                 return new Error(msg);
             }
         }, {
@@ -443,6 +511,12 @@ var chitu;
             key: 'resourceExists',
             value: function resourceExists(resourceName, pageName) {
                 var msg = 'Rosource \'' + resourceName + '\' is exists in the resources of page \'' + pageName + '\'.';
+                return new Error(msg);
+            }
+        }, {
+            key: 'siteMapRootCanntNull',
+            value: function siteMapRootCanntNull() {
+                var msg = 'The site map root node can not be null.';
                 return new Error(msg);
             }
         }]);
@@ -498,10 +572,50 @@ var chitu;
         return new Callback();
     }
     chitu.Callbacks = Callbacks;
-    function fireCallback(callback, sender, args) {
-        callback.fire(sender, args);
-    }
-    chitu.fireCallback = fireCallback;
+
+    var ValueStore = function () {
+        function ValueStore(value) {
+            _classCallCheck(this, ValueStore);
+
+            this.funcs = new Array();
+            this._value = value;
+        }
+
+        _createClass(ValueStore, [{
+            key: "add",
+            value: function add(func) {
+                this.funcs.push(func);
+                return func;
+            }
+        }, {
+            key: "remove",
+            value: function remove(func) {
+                this.funcs = this.funcs.filter(function (o) {
+                    return o != func;
+                });
+            }
+        }, {
+            key: "fire",
+            value: function fire(value) {
+                this.funcs.forEach(function (o) {
+                    return o(value);
+                });
+            }
+        }, {
+            key: "value",
+            get: function get() {
+                return this._value;
+            },
+            set: function set(value) {
+                this._value = value;
+                this.fire(value);
+            }
+        }]);
+
+        return ValueStore;
+    }();
+
+    chitu.ValueStore = ValueStore;
 })(chitu || (chitu = {}));
 //# sourceMappingURL=Extends.js.map
 
@@ -532,7 +646,7 @@ var __awaiter = undefined && undefined.__awaiter || function (thisArg, _argument
                 resolve(result.value);
             }).then(fulfilled, rejected);
         }
-        step((generator = generator.apply(thisArg, _arguments)).next());
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
 var chitu;
@@ -542,8 +656,9 @@ var chitu;
             _classCallCheck(this, Page);
 
             this.animationTime = 300;
-            this.allowCache = false;
+            this.error = chitu.Callbacks();
             this.load = chitu.Callbacks();
+            this.loadComplete = chitu.Callbacks();
             this.showing = chitu.Callbacks();
             this.shown = chitu.Callbacks();
             this.hiding = chitu.Callbacks();
@@ -555,43 +670,49 @@ var chitu;
             this._app = params.app;
             this._routeData = params.routeData;
             this._displayer = params.displayer;
+            this._actionArguments = params.actionArguments;
             this.loadPageAction();
         }
 
         _createClass(Page, [{
             key: 'on_load',
-            value: function on_load(args) {
-                return chitu.fireCallback(this.load, this, args);
+            value: function on_load() {
+                return this.load.fire(this, null);
+            }
+        }, {
+            key: 'on_loadComplete',
+            value: function on_loadComplete() {
+                return this.loadComplete.fire(this, null);
             }
         }, {
             key: 'on_showing',
             value: function on_showing() {
-                return chitu.fireCallback(this.showing, this, {});
+                return this.showing.fire(this, null);
             }
         }, {
             key: 'on_shown',
             value: function on_shown() {
-                return chitu.fireCallback(this.shown, this, {});
+                return this.shown.fire(this, null);
             }
         }, {
             key: 'on_hiding',
             value: function on_hiding() {
-                return chitu.fireCallback(this.hiding, this, {});
+                return this.hiding.fire(this, null);
             }
         }, {
             key: 'on_hidden',
             value: function on_hidden() {
-                return chitu.fireCallback(this.hidden, this, {});
+                return this.hidden.fire(this, null);
             }
         }, {
             key: 'on_closing',
             value: function on_closing() {
-                return chitu.fireCallback(this.closing, this, {});
+                return this.closing.fire(this, null);
             }
         }, {
             key: 'on_closed',
             value: function on_closed() {
-                return chitu.fireCallback(this.closed, this, {});
+                return this.closed.fire(this, null);
             }
         }, {
             key: 'show',
@@ -625,10 +746,24 @@ var chitu;
                 });
             }
         }, {
+            key: 'createService',
+            value: function createService(type) {
+                var _this4 = this;
+
+                var service = new type();
+                service.error.add(function (ender, error) {
+                    _this4.error.fire(_this4, error);
+                });
+                return service;
+            }
+        }, {
             key: 'loadPageAction',
             value: function loadPageAction() {
-                return __awaiter(this, void 0, void 0, regeneratorRuntime.mark(function _callee() {
-                    var routeData, url, actionResult, actionName, action, args;
+                return __awaiter(this, void 0, void 0, /*#__PURE__*/regeneratorRuntime.mark(function _callee() {
+                    var _this5 = this;
+
+                    var routeData, url, actionResult, actionName, action, actionExecuteResult, _actionResult;
+
                     return regeneratorRuntime.wrap(function _callee$(_context) {
                         while (1) {
                             switch (_context.prev = _context.next) {
@@ -661,24 +796,30 @@ var chitu;
                                     throw chitu.Errors.canntFindAction(routeData.pageName);
 
                                 case 12:
+                                    actionExecuteResult = void 0;
+
                                     if (!(typeof action == 'function')) {
-                                        _context.next = 16;
+                                        _context.next = 18;
                                         break;
                                     }
 
-                                    if (action['prototype'] != null) new action(this);else action(this);
-                                    _context.next = 17;
+                                    _actionResult = action(this);
+
+                                    if (_actionResult != null && _actionResult.then != null && _actionResult.catch != null) {
+                                        _actionResult.then(function () {
+                                            return _this5.on_loadComplete();
+                                        });
+                                    }
+                                    _context.next = 19;
                                     break;
 
-                                case 16:
+                                case 18:
                                     throw chitu.Errors.actionTypeError(routeData.pageName);
 
-                                case 17:
-                                    args = {};
-
-                                    this.on_load(args);
-
                                 case 19:
+                                    this.on_load();
+
+                                case 20:
                                 case 'end':
                                     return _context.stop();
                             }
@@ -721,38 +862,286 @@ var chitu;
 
     Page.tagName = 'div';
     chitu.Page = Page;
+})(chitu || (chitu = {}));
 
-    var PageDisplayerImplement = function () {
-        function PageDisplayerImplement() {
-            _classCallCheck(this, PageDisplayerImplement);
+var PageDisplayerImplement = function () {
+    function PageDisplayerImplement() {
+        _classCallCheck(this, PageDisplayerImplement);
+    }
+
+    _createClass(PageDisplayerImplement, [{
+        key: 'show',
+        value: function show(page) {
+            page.element.style.display = 'block';
+            if (page.previous != null) {
+                page.previous.element.style.display = 'none';
+            }
+            return Promise.resolve();
+        }
+    }, {
+        key: 'hide',
+        value: function hide(page) {
+            page.element.style.display = 'none';
+            if (page.previous != null) {
+                page.previous.element.style.display = 'block';
+            }
+            return Promise.resolve();
+        }
+    }]);
+
+    return PageDisplayerImplement;
+}();
+//# sourceMappingURL=Page.js.map
+
+'use strict';
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var __awaiter = undefined && undefined.__awaiter || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) {
+            try {
+                step(generator.next(value));
+            } catch (e) {
+                reject(e);
+            }
+        }
+        function rejected(value) {
+            try {
+                step(generator["throw"](value));
+            } catch (e) {
+                reject(e);
+            }
+        }
+        function step(result) {
+            result.done ? resolve(result.value) : new P(function (resolve) {
+                resolve(result.value);
+            }).then(fulfilled, rejected);
+        }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+function _ajax(url, options) {
+    return __awaiter(this, void 0, void 0, /*#__PURE__*/regeneratorRuntime.mark(function _callee() {
+        var response, responseText, p, text, textObject, isJSONContextType, err, travelJSON;
+        return regeneratorRuntime.wrap(function _callee$(_context) {
+            while (1) {
+                switch (_context.prev = _context.next) {
+                    case 0:
+                        travelJSON = function travelJSON(result) {
+                            var datePattern = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/;
+                            if (typeof result === 'string' && value.match(this.datePattern)) {
+                                return new Date(result);
+                            }
+                            var stack = new Array();
+                            stack.push(result);
+                            while (stack.length > 0) {
+                                var item = stack.pop();
+                                for (var key in item) {
+                                    var value = item[key];
+                                    if (value == null) continue;
+                                    if (value instanceof Array) {
+                                        for (var i = 0; i < value.length; i++) {
+                                            stack.push(value[i]);
+                                        }
+                                        continue;
+                                    }
+                                    if ((typeof value === 'undefined' ? 'undefined' : _typeof(value)) == 'object') {
+                                        stack.push(value);
+                                        continue;
+                                    }
+                                    if (typeof value == 'string' && value.match(datePattern)) {
+                                        item[key] = new Date(value);
+                                    }
+                                }
+                            }
+                            return result;
+                        };
+
+                        _context.next = 3;
+                        return fetch(url, options);
+
+                    case 3:
+                        response = _context.sent;
+                        responseText = response.text();
+                        p = void 0;
+
+                        if (typeof responseText == 'string') {
+                            p = new Promise(function (reslove, reject) {
+                                reslove(responseText);
+                            });
+                        } else {
+                            p = responseText;
+                        }
+                        _context.next = 9;
+                        return responseText;
+
+                    case 9:
+                        text = _context.sent;
+                        textObject = void 0;
+                        isJSONContextType = (response.headers.get('content-type') || '').indexOf('json') >= 0;
+
+                        if (isJSONContextType) {
+                            textObject = JSON.parse(text);
+                            textObject = travelJSON(textObject);
+                        } else {
+                            textObject = text;
+                        }
+
+                        if (!(response.status >= 300)) {
+                            _context.next = 20;
+                            break;
+                        }
+
+                        err = new Error();
+
+                        err.method = options.method;
+                        err.name = '' + response.status;
+                        err.message = isJSONContextType ? textObject.Message || textObject.message : textObject;
+                        err.message = err.message || response.statusText;
+                        throw err;
+
+                    case 20:
+                        return _context.abrupt('return', textObject);
+
+                    case 21:
+                    case 'end':
+                        return _context.stop();
+                }
+            }
+        }, _callee, this);
+    }));
+}
+var chitu;
+(function (chitu) {
+    var Service = function () {
+        function Service() {
+            _classCallCheck(this, Service);
+
+            this.error = chitu.Callbacks();
         }
 
-        _createClass(PageDisplayerImplement, [{
-            key: 'show',
-            value: function show(page) {
-                page.element.style.display = 'block';
-                if (page.previous != null) {
-                    page.previous.element.style.display = 'none';
-                }
-                return Promise.resolve();
+        _createClass(Service, [{
+            key: 'ajax',
+            value: function ajax(url, options) {
+                var _this = this;
+
+                options.headers = Object.assign(Service.settings.headers || {}, options.headers || {});
+                return new Promise(function (reslove, reject) {
+                    var timeId = void 0;
+                    if (options.method == 'get') {
+                        timeId = setTimeout(function () {
+                            var err = new Error();
+                            err.name = 'timeout';
+                            err.message = '网络连接超时';
+                            reject(err);
+                            _this.error.fire(_this, err);
+                            clearTimeout(timeId);
+                        }, Service.settings.ajaxTimeout * 1000);
+                    }
+                    _ajax(url, options).then(function (data) {
+                        reslove(data);
+                        if (timeId) clearTimeout(timeId);
+                    }).catch(function (err) {
+                        reject(err);
+                        _this.error.fire(_this, err);
+                        if (timeId) clearTimeout(timeId);
+                    });
+                });
             }
         }, {
-            key: 'hide',
-            value: function hide(page) {
-                page.element.style.display = 'none';
-                if (page.previous != null) {
-                    page.previous.element.style.display = 'block';
+            key: 'getByJson',
+            value: function getByJson(url, data) {
+                console.assert(url.indexOf('?') < 0);
+                if (data) {
+                    url = url + '?' + JSON.stringify(data);
                 }
-                return Promise.resolve();
+                return this.ajaxByJSON(url, null, 'get');
+            }
+        }, {
+            key: 'postByJson',
+            value: function postByJson(url, data) {
+                return this.ajaxByJSON(url, data, 'post');
+            }
+        }, {
+            key: 'deleteByJson',
+            value: function deleteByJson(url, data) {
+                return this.ajaxByJSON(url, data, 'delete');
+            }
+        }, {
+            key: 'putByJson',
+            value: function putByJson(url, data) {
+                return this.ajaxByJSON(url, data, 'put');
+            }
+        }, {
+            key: 'get',
+            value: function get(url, data) {
+                data = data || {};
+                var urlParams = '';
+                for (var key in data) {
+                    urlParams = urlParams + ('&' + key + '=' + data[key]);
+                }
+                console.assert(url.indexOf('?') < 0);
+                url = url + '?' + urlParams;
+                var options = {
+                    method: 'get'
+                };
+                return this.ajax(url, options);
+            }
+        }, {
+            key: 'post',
+            value: function post(url, data) {
+                return this.ajaxByForm(url, data, 'post');
+            }
+        }, {
+            key: 'put',
+            value: function put(url, data) {
+                return this.ajaxByForm(url, data, 'put');
+            }
+        }, {
+            key: 'delete',
+            value: function _delete(url, data) {
+                return this.ajaxByForm(url, data, 'delete');
+            }
+        }, {
+            key: 'ajaxByForm',
+            value: function ajaxByForm(url, data, method) {
+                var form = new FormData();
+                for (var key in data) {
+                    form.append(key, data[key]);
+                }
+                return this.ajax(url, { body: form, method: method });
+            }
+        }, {
+            key: 'ajaxByJSON',
+            value: function ajaxByJSON(url, data, method) {
+                var headers = {};
+                headers['content-type'] = 'application/json';
+                var body = void 0;
+                if (data) body = JSON.stringify(data);
+                var options = {
+                    headers: headers,
+                    body: body,
+                    method: method
+                };
+                return this.ajax(url, options);
             }
         }]);
 
-        return PageDisplayerImplement;
+        return Service;
     }();
 
-    chitu.PageDisplayerImplement = PageDisplayerImplement;
+    Service.settings = {
+        ajaxTimeout: 30,
+        headers: {}
+    };
+    chitu.Service = Service;
 })(chitu || (chitu = {}));
-//# sourceMappingURL=Page.js.map
+//# sourceMappingURL=Service.js.map
 
 'use strict';
 
