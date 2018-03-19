@@ -98,12 +98,12 @@ export default async function (page: Page) {
                             <div className="nick-name">
                                 {userInfo.NickName == null ? '未填写' : userInfo.NickName}
                             </div>
-                            {balance != null ?
+                            {/* {balance != null ?
                                 <div className="balance text-right">
                                     <span>余额</span>
                                     <span className="price">￥{balance.toFixed(2)}</span>
                                 </div> : null
-                            }
+                            } */}
                         </div>
                         <div className="order-bar">
                             <div className="col-xs-3">
@@ -143,11 +143,11 @@ export default async function (page: Page) {
                                 <strong>收货地址</strong>
                             </a>
 
-                            <a className="list-group-item" href="#user_favors">
+                            {/* <a className="list-group-item" href="#user_favors">
                                 <span className="icon-chevron-right pull-right"></span>
                                 <span className="pull-right value" style={{ display: 'none' }}></span>
                                 <strong>我的收藏</strong>
-                            </a>
+                            </a> */}
 
                             <a className="list-group-item" href="#user_scoreList">
                                 <span className="icon-chevron-right pull-right"></span>

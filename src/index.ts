@@ -89,7 +89,6 @@ requirejs.config({
         carousel: 'core/carousel',
         modules: modulesPath,
         jweixin: 'https://res.wx.qq.com/open/js/jweixin-1.2.0',
-        // ui: 'ui'
     }
 });
 

@@ -145,7 +145,9 @@ interface ShoppingCartItem {
     /**
      * 优惠类型，Reduce 为满减, Discount 为满折，Given 为满赠
      */
-    Type?: 'Given' | 'Reduce' | 'Discount'
+    Type?: 'Given' | 'Reduce' | 'Discount',
+
+    Description?: string,
 }
 
 interface News {

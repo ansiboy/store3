@@ -1,20 +1,25 @@
 import { Page, defaultNavBar, app, formatDate } from 'site';
-import { ShoppingService, AccountService } from 'services';
+import { ShoppingService, AccountService, WeiXinService } from 'services';
 import * as ui from 'ui';
 
 export default function (page: Page) {
 
     let shopping = page.createService(ShoppingService);
     let accout = page.createService(AccountService);
+    let weixin = page.createService(WeiXinService);
+
     type PayType = 'balance' | 'weixin' | 'alipay';
     class PurchasePage extends React.Component<{ order: Order }, { payType: PayType }> {
         constructor(props) {
             super(props);
-            this.state = { payType: 'balance' };
+            this.state = { payType: 'weixin' };
         }
         private balancePurchase(order: Order) {
             console.assert(order.Sum != null);
             console.assert(order.Sum == order.Amount + order.Freight);
+            if (this.state.payType == 'weixin') {
+                return weixin.purchaseOrder(order.Id, order.Sum);
+            }
             return accout.payOrder(order.Id, order.Sum);
         }
         render() {
@@ -74,10 +79,10 @@ export default function (page: Page) {
                                 提示：请在下单24小时内付款，过期后订单将自动取消。
                             </div>
                             <hr className="row" />
-                            <button className="cust-prop selected">
+                            {/* <button className="cust-prop selected">
                                 余额支付
-                            </button>
-                            <button className="cust-prop">
+                            </button> */}
+                            <button className="cust-prop selected">
                                 微信支付
                             </button>
                         </div>

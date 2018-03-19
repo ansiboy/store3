@@ -7,8 +7,6 @@ let productStore = new ValueStore<Product>();
 
 export default async function (page: Page) {
 
-    // let shoppingCart = page.createService(ShoppingCartService);
-
     interface ProductPageState {
         // productSelectedText: string,
         isFavored: boolean,

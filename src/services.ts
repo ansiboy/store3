@@ -1,6 +1,6 @@
 import chitu = require('chitu');
 
-const REMOTE_HOST = 'service.alinq.cn';
+const REMOTE_HOST = 'service4.alinq.cn';
 
 
 let protocol = location.protocol;
@@ -14,7 +14,7 @@ let config = {
         weixin: `${protocol}//${REMOTE_HOST}/UserWeiXin/`,
         account: `${protocol}//${REMOTE_HOST}/UserAccount/`,
     },
-    appKey: '59c8e00a675d1b3414f83fc3',//'59a0d63ab58cf427f90c7d3e',//
+    appKey: '59a0d63ab58cf427f90c7d3e',//'59c8e00a675d1b3414f83fc3',// 
     /** 调用服务接口超时时间，单位为秒 */
     ajaxTimeout: 30,
     pageSize: 10
@@ -156,7 +156,7 @@ export abstract class Service {
     error = chitu.Callbacks<Service, Error>();
     ajax<T>(url: string, options: RequestInit): Promise<T> {
 
-        options.headers = options.headers || {};
+        options.headers = options.headers || {} as Headers;
         options.headers['application-key'] = config.appKey
         let user_token: string = userData.userToken.value;
         if (user_token) {
@@ -215,7 +215,7 @@ export abstract class Service {
         return this.ajaxByJSON<T>(url, data, 'put');
     }
     private ajaxByJSON<T>(url: string, data: Object, method: string) {
-        let headers = {};
+        let headers = {} as Headers;
         headers['content-type'] = 'application/json';
         let body: any;
         if (data)
@@ -1204,10 +1204,100 @@ export class LocationService extends Service {
 
 export class WeiXinService extends Service {
 
+    get openid() {
+        //site.cookies.set_value('openId', 'oOjaNt51NI4srmUm8FTPkr-ywjc0');
+        // if (value === undefined)
+        //     return site.cookies.get_value('openId');
+
+        // site.cookies.set_value('openId', value);
+        return "oOjaNt51NI4srmUm8FTPkr-ywjc0";
+
+    }
+
     jsSignature = (noncestr, url) => {
         var data = { noncestr: noncestr, url: url };
         let u = `${config.service.weixin}WeiXin/GetJsSignature`;
         return this.get(u, data);
+    }
+
+    async purchaseOrder(orderId: string, amount: number): Promise<any> {
+        // var weixin = services['weixin'];
+        var openid = this.openid;
+        var notify_url = encodeURI(`${config.service.weixin}/OrderPurchase/`);
+        var out_trade_no = orderId;//ko.unwrap(orderId).replace(/\-/g, '');
+        let prepayId = await this.getPrepayId(1, openid, notify_url, out_trade_no, "零食有约");
+        await this.weixinPay(prepayId);
+        // return this.pay(openid, notify_url, out_trade_no, site.config.storeName, amount)
+        //     .done(() => {
+        //         this.orderStatusChanged('WaitingForPayment', 'Paid');
+        //     });
+    }
+
+    private getPrepayId(total_fee, openid, notify_url, out_trade_no, title): Promise<string> {
+        var data = {
+            total_fee: total_fee, openid: openid, notify_url: notify_url,
+            out_trade_no: out_trade_no, title: title
+        };
+
+        let u = `${config.service.weixin}WeiXin/GetPrepayId`;
+        return this.post(u, data);
+    }
+
+    private weixinPay(prepayId: string): Promise<string> {
+        function getTimeStamp() {
+            var timestamp = new Date().getTime();
+            var timestampstring = timestamp.toString();//一定要转换字符串
+            return timestampstring;
+        }
+
+        function getNonceStr() {
+            var $chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            var maxPos = $chars.length;
+            var noceStr = "";
+            for (var i = 0; i < 32; i++) {
+                noceStr += $chars.charAt(Math.floor(Math.random() * maxPos));
+            }
+            return noceStr;
+        }
+
+
+        var nonceStr = getNonceStr();
+        var timeStamp = getTimeStamp();
+        var pack = "prepay_id=" + prepayId;
+        var paySignatureDeferred = this.paySignature(nonceStr, pack, timeStamp);
+
+
+        return new Promise((resolve, reject) => {
+            paySignatureDeferred.then((data) => {
+                window['WeixinJSBridge'].invoke('getBrandWCPayRequest', {
+                    "appId": data.appId,                     //公众号名称，由商户传入
+                    "nonceStr": nonceStr,          //随机串
+                    "package": pack,//扩展包
+                    "timeStamp": timeStamp, //时间戳
+                    "signType": 'MD5', //微信签名方式
+                    "paySign": data.paySign //微信签名
+                }, function (res) {
+
+                    if (res.err_msg == "get_brand_wcpay_request:ok") {
+                        resolve();
+                    }
+                    else if (res.err_msg == "get_brand_wcpay_request:cancel") {
+                        reject();
+                    }
+                    else {
+                        alert(res.err_msg);
+                        reject();
+                    }
+                });
+            })
+
+        })
+    }
+
+    paySignature = (nonceStr, pack, timeStamp) => {
+        var data = { nonceStr: nonceStr, 'package': pack, timeStamp: timeStamp };
+        let url = `${config.service.weixin}WeiXin/GetJsSignature`;
+        return this.get<{ appId: string, paySign: string }>(url, data);
     }
 }
 
@@ -1331,10 +1421,6 @@ userData.userToken.add((value) => {
     if (!value)
         return;
 
-
-    // ShoppingCart.getItems().then((value) => {
-    //     userData.shoppingCartItems.value = value;
-    // })
 
     let member = new MemberService();
     member.userInfo().then((o: UserInfo) => {

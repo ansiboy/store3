@@ -285,7 +285,7 @@ class ImageBox extends React.Component<ImageBoxProps, ImageBoxState> {
         this.state = { imageSource: this.props.imageSource };
 
         // var ua = navigator.userAgent.toLowerCase();
-        // this.isWeixin = (ua.match(/MicroMessenger/i) as any) == 'micromessenger';
+        // this.c
     }
     async componentDidMount() {
         ui.renderImage(this.imageElement);
