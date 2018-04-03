@@ -26,12 +26,12 @@ export default function (app: chitu.Application, err: ServiceError) {
             // 1. 如果在打开页面的过程中页面出现未登录，就关掉打开的页面    
             // 2. 如果是点击按钮的时候出现未登录，就调转登录页面       
             if ((err.method || 'get') == 'get') {
-                app.showPage('user_login', { return: currentPage.routeData.routeString });
+                app.showPage('user_login', { return: currentPage.name });
                 currentPage.close()
                 // setTimeout(() => currentPage.close(), 100);
             }
             else {
-                app.redirect('user_login', { return: currentPage.routeData.routeString });
+                app.redirect('user_login', { return: currentPage.name });
             }
             //========================================================
             break;

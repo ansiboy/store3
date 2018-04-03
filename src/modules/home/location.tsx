@@ -102,7 +102,7 @@ export default function (page: Page, args: Argumnets) {
 
         showReceiptEditPage(receiptId?: string) {
             if (!userData.userToken.value) {
-                return app.redirect("user_login", { return: page.routeData.routeString })
+                return app.redirect("user_login", { return: page.data })
             }
 
             let args: ReceiptEditPageArguments = {

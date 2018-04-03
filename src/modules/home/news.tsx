@@ -8,7 +8,7 @@ let { PageComponent, PageHeader, PageFooter, PageView, HtmlView } = controls;
 
 export default function (page: Page) {
     let station = page.createService(StationService);
-    let id = page.routeData.values.id;
+    let id = page.data.id;
     console.assert(id);
 
     class NewsPage extends React.Component<{ news: News }, {}>{

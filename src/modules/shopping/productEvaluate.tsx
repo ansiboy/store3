@@ -117,7 +117,7 @@ export default function (page: Page) {
         }
     }
 
-    let { orderDetailId, productImageUrl } = page.routeData.values as RouteValues;
+    let { orderDetailId, productImageUrl } = page.data as RouteValues;
     ReactDOM.render(<ProductEvaluate orderDetailId={orderDetailId} productImageUrl={productImageUrl} />, page.element);
 }
 

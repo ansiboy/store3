@@ -9,7 +9,7 @@ export interface RegionsPageRouteValues {
 }
 export default function (page: Page) {
     let shop = page.createService(ShoppingService);
-    let routeValues = (page.routeData.values || {}) as RegionsPageRouteValues;
+    let routeValues = (page.data || {}) as RegionsPageRouteValues;
     interface RegiosPageState {
         title: string, cities: Region[], countries: Region[],
         currentProvince?: Region, currentCity?: Region, currentCounty?: Region

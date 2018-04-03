@@ -1,784 +1,820 @@
-(function(factory) { 
-    if (typeof require === 'function' && typeof exports === 'object' && typeof module === 'object') { 
+
+
+/*!
+ * CHITU v1.6.0
+ * https://github.com/ansiboy/ChiTu
+ *
+ * Copyright (c) 2016-2018, shu mai <ansiboy@163.com>
+ * Licensed under the MIT License.
+ *
+ */
+
+(function (factory) {
+    if (typeof require === 'function' && typeof exports === 'object' && typeof module === 'object') {
         // [1] CommonJS/Node.js 
-        var target = module['exports'] || exports; 
+        var target = module['exports'] || exports;
         var chitu = factory(target, require);
-        Object.assign(target,chitu);
-    } else 
-if (typeof define === 'function' && define['amd']) { 
-    define(factory);  
-} else { 
-    factory(); 
-} 
-})(function() {var chitu;
-(function (chitu) {
-const DEFAULT_FILE_BASE_PATH = 'modules';
-class RouteData {
-constructor(basePath, routeString, pathSpliterChar) {
-    this._parameters = {};
-    this.path_string = '';
-    this.path_spliter_char = '/';
-    this.path_contact_char = '/';
-    this.param_spliter = '?';
-    this.name_spliter_char = '.';
-    this._pathBase = '';
-    if (!basePath)
-        throw chitu.Errors.argumentNull('basePath');
-    if (!routeString)
-        throw chitu.Errors.argumentNull('routeString');
-    if (pathSpliterChar)
-        this.path_spliter_char = pathSpliterChar;
-    this._loadCompleted = false;
-    this._routeString = routeString;
-    this._pathBase = basePath;
-    this.parseRouteString();
-    let routeData = this;
-}
-parseRouteString() {
-    let routeString = this.routeString;
-    let routePath;
-    let search;
-    let param_spliter_index = routeString.indexOf(this.param_spliter);
-    if (param_spliter_index > 0) {
-        search = routeString.substr(param_spliter_index + 1);
-        routePath = routeString.substring(0, param_spliter_index);
+        Object.assign(target, chitu);
+    } else if (typeof define === 'function' && define['amd']) {
+        define(factory);
+    } else {
+        factory();
     }
-    else {
-        routePath = routeString;
-    }
-    if (!routePath)
-        throw chitu.Errors.canntParseRouteString(routeString);
-    if (search) {
-        this._parameters = this.pareeUrlQuery(search);
-    }
-    let path_parts = routePath.split(this.path_spliter_char).map(o => o.trim()).filter(o => o != '');
-    if (path_parts.length < 1) {
-        throw chitu.Errors.canntParseRouteString(routeString);
-    }
-    let file_path = path_parts.join(this.path_contact_char);
-    this._pageName = path_parts.join(this.name_spliter_char);
-    this._actionPath = (this.basePath ? chitu.combinePath(this.basePath, file_path) : file_path);
-}
-pareeUrlQuery(query) {
-    let match, pl = /\+/g, search = /([^&=]+)=?([^&]*)/g, decode = function (s) { return decodeURIComponent(s.replace(pl, " ")); };
-    let urlParams = {};
-    while (match = search.exec(query))
-        urlParams[decode(match[1])] = decode(match[2]);
-    return urlParams;
-}
-get basePath() {
-    return this._pathBase;
-}
-get values() {
-    return this._parameters;
-}
-get pageName() {
-    return this._pageName;
-}
-get routeString() {
-    return this._routeString;
-}
-get actionPath() {
-    return this._actionPath;
-}
-get loadCompleted() {
-    return this._loadCompleted;
-}
-}
-chitu.RouteData = RouteData;
-var PAGE_STACK_MAX_SIZE = 20;
-var ACTION_LOCATION_FORMATER = '{controller}/{action}';
-var VIEW_LOCATION_FORMATER = '{controller}/{action}';
-class Application {
-constructor(args) {
-    this.pageCreated = chitu.Callbacks();
-    this.pageType = chitu.Page;
-    this.pageDisplayType = PageDisplayerImplement;
-    this._runned = false;
-    this.page_stack = new Array();
-    this.fileBasePath = DEFAULT_FILE_BASE_PATH;
-    this.backFail = chitu.Callbacks();
-    args = args || {};
-    this._siteMap = args.siteMap;
-    if (this._siteMap) {
-        if (this._siteMap.root == null)
-            throw chitu.Errors.siteMapRootCanntNull();
-        this._siteMap.root.level = 0;
-        this.setChildrenParent(this._siteMap.root);
-    }
-}
-setChildrenParent(parent) {
-    if (parent == null)
-        throw chitu.Errors.argumentNull('parent');
-    let children = parent.children || [];
-    for (let i = 0; i < children.length; i++) {
-        children[i].parent = parent;
-        children[i].level = parent.level + 1;
-        this.setChildrenParent(children[i]);
-    }
-}
-parseRouteString(routeString) {
-    let routeData = new RouteData(this.fileBasePath, routeString);
-    return routeData;
-}
-on_pageCreated(page) {
-    return this.pageCreated.fire(this, page);
-}
-get currentPage() {
-    if (this.page_stack.length > 0)
-        return this.page_stack[this.page_stack.length - 1];
-    return null;
-}
-get pages() {
-    return this.page_stack;
-}
-createPage(routeData, actionArguments) {
-    let previous_page = this.pages[this.pages.length - 1];
-    let element = this.createPageElement(routeData);
-    let displayer = new this.pageDisplayType(this);
-    console.assert(this.pageType != null);
-    let page = new this.pageType({
-        app: this,
-        previous: previous_page,
-        routeData: routeData,
-        displayer,
-        element,
-        actionArguments
-    });
-    let page_onclosed = (sender) => {
-        this.page_stack = this.page_stack.filter(o => o != sender);
-        page.closed.remove(page_onclosed);
-    };
-    page.closed.add(page_onclosed);
-    this.on_pageCreated(page);
-    return page;
-}
-createPageElement(routeData) {
-    let element = document.createElement(chitu.Page.tagName);
-    document.body.appendChild(element);
-    return element;
-}
-hashchange() {
-    var hash = window.location.hash;
-    if (!hash) {
-        console.log('The url is not contains hash.url is ' + window.location.href);
-        return;
-    }
-    var routeString;
-    if (location.hash.length > 1)
-        routeString = location.hash.substr(1);
-    var page = this.getPageByRouteString(routeString);
-    let previousPageIndex = this.page_stack.length - 2;
-    if (page != null && this.page_stack.indexOf(page) == previousPageIndex) {
-        this.closeCurrentPage();
-    }
-    else {
-        this.showPage(routeString);
-    }
-}
-run() {
-    if (this._runned)
-        return;
-    var app = this;
-    this.hashchange();
-    window.addEventListener('popstate', () => {
-        this.hashchange();
-    });
-    this._runned = true;
-}
-getPage(name) {
-    for (var i = this.page_stack.length - 1; i >= 0; i--) {
-        var page = this.page_stack[i];
-        if (page != null && page.name == name)
-            return page;
-    }
-    return null;
-}
-getPageByRouteString(routeString) {
-    for (var i = this.page_stack.length - 1; i >= 0; i--) {
-        var page = this.page_stack[i];
-        if (page != null && page.routeData.routeString == routeString)
-            return page;
-    }
-    return null;
-}
-showPage(routeString, args) {
-    if (!routeString)
-        throw chitu.Errors.argumentNull('routeString');
-    var routeData = this.parseRouteString(routeString);
-    if (routeData == null) {
-        throw chitu.Errors.noneRouteMatched(routeString);
-    }
-    Object.assign(routeData.values, args || {});
-    let page = this.createPage(routeData, args);
-    if (this.currentPage != null && this._siteMap != null) {
-        let pageIsParenPage = false;
-        let newPageNode = this.findSiteMapNode(page.name);
-        let currentPageNode = this.findSiteMapNode(this.currentPage.name);
-        if (newPageNode != null && currentPageNode != null && newPageNode.level < currentPageNode.level) {
-            this.closeCurrentPage();
-        }
-    }
-    this.pushPage(page);
-    page.show();
-    return page;
-}
-pushPage(page) {
-    let previous = this.currentPage;
-    this.page_stack.push(page);
-    if (this.page_stack.length > PAGE_STACK_MAX_SIZE) {
-        let c = this.page_stack.shift();
-    }
-    page.previous = previous;
-}
-findSiteMapNode(pageName) {
-    if (this._siteMap == null)
-        return;
-    let stack = new Array();
-    stack.push(this._siteMap.root);
-    while (stack.length > 0) {
-        let node = stack.pop();
-        if (node.pageName == pageName) {
-            return node;
-        }
-    }
-    return null;
-}
-setLocationHash(routeString) {
-    if (window.location.hash == '#' + routeString) {
-        return;
-    }
-    history.pushState(routeString, "", `#${routeString}`);
-}
-closeCurrentPage() {
-    if (this.page_stack.length <= 0)
-        return;
-    var page = this.page_stack.pop();
-    page.close();
-    if (this.currentPage != null)
-        this.setLocationHash(this.currentPage.routeData.routeString);
-}
-clearPageStack() {
-    this.page_stack = [];
-}
-redirect(routeString, args) {
-    let result = this.showPage(routeString, args);
-    this.setLocationHash(routeString);
-    return result;
-}
-back() {
-    history.back();
-}
-_back(args = undefined) {
-    if (this.currentPage == null) {
-        this.backFail.fire(this, null);
-        return;
-    }
-    let routeData = this.currentPage.routeData;
-    this.closeCurrentPage();
-    if (this.page_stack.length > 0) {
-        return;
-    }
-    if (this._siteMap == null) {
-        this.backFail.fire(this, null);
-        return;
-    }
-    let siteMapNode = this.findSiteMapNode(routeData.pageName);
-    if (siteMapNode != null && siteMapNode.parent != null) {
-        let p = siteMapNode.parent;
-        let routeString = typeof p.routeString == 'function' ? p.routeString() : p.routeString;
-        this.redirect(routeString);
-        return;
-    }
-    this.backFail.fire(this, null);
-}
-}
-chitu.Application = Application;
-})(chitu || (chitu = {}));
-
-var chitu;
-(function (chitu) {
-class Errors {
-static argumentNull(paramName) {
-    var msg = `The argument "${paramName}" cannt be null.`;
-    return new Error(msg);
-}
-static modelFileExpecteFunction(script) {
-    var msg = `The eval result of script file "${script}" is expected a function.`;
-    return new Error(msg);
-}
-static paramTypeError(paramName, expectedType) {
-    var msg = `The param "${paramName}" is expected "${expectedType}" type.`;
-    return new Error(msg);
-}
-static paramError(msg) {
-    return new Error(msg);
-}
-static viewNodeNotExists(name) {
-    var msg = `The view node "${name}" is not exists.`;
-    return new Error(msg);
-}
-static pathPairRequireView(index) {
-    var msg = `The view value is required for path pair, but the item with index "${index}" is miss it.`;
-    return new Error(msg);
-}
-static notImplemented(name) {
-    var msg = `'The method "${name}" is not implemented.'`;
-    return new Error(msg);
-}
-static routeExists(name) {
-    var msg = `Route named "${name}" is exists.`;
-    return new Error(msg);
-}
-static noneRouteMatched(url) {
-    var msg = `None route matched with url "${url}".`;
-    var error = new Error(msg);
-    return error;
-}
-static emptyStack() {
-    return new Error('The stack is empty.');
-}
-static canntParseUrl(url) {
-    var msg = `Can not parse the url "${url}" to route data.`;
-    return new Error(msg);
-}
-static canntParseRouteString(routeString) {
-    var msg = `Can not parse the route string "${routeString}" to route data.;`;
-    return new Error(msg);
-}
-static routeDataRequireController() {
-    var msg = 'The route data does not contains a "controller" file.';
-    return new Error(msg);
-}
-static routeDataRequireAction() {
-    var msg = 'The route data does not contains a "action" file.';
-    return new Error(msg);
-}
-static viewCanntNull() {
-    var msg = 'The view or viewDeferred of the page cannt null.';
-    return new Error(msg);
-}
-static createPageFail(pageName) {
-    var msg = `Create page "${pageName}" fail.`;
-    return new Error(msg);
-}
-static actionTypeError(pageName) {
-    let msg = `The action in page '${pageName}' is expect as function.`;
-    return new Error(msg);
-}
-static canntFindAction(pageName) {
-    let msg = `Cannt find action in page '${pageName}', is the exports has default field?`;
-    return new Error(msg);
-}
-static exportsCanntNull(pageName) {
-    let msg = `Exports of page '${pageName}' is null.`;
-}
-static scrollerElementNotExists() {
-    let msg = "Scroller element is not exists.";
-    return new Error(msg);
-}
-static resourceExists(resourceName, pageName) {
-    let msg = `Rosource '${resourceName}' is exists in the resources of page '${pageName}'.`;
-    return new Error(msg);
-}
-static siteMapRootCanntNull() {
-    let msg = `The site map root node can not be null.`;
-    return new Error(msg);
-}
-}
-chitu.Errors = Errors;
-})(chitu || (chitu = {}));
-
-var chitu;
-(function (chitu) {
-class Callback {
-constructor() {
-    this.funcs = new Array();
-}
-add(func) {
-    this.funcs.push(func);
-}
-remove(func) {
-    this.funcs = this.funcs.filter(o => o != func);
-}
-fire(sender, args) {
-    this.funcs.forEach(o => o(sender, args));
-}
-}
-chitu.Callback = Callback;
-function Callbacks() {
-return new Callback();
-}
-chitu.Callbacks = Callbacks;
-class ValueStore {
-constructor(value) {
-    this.funcs = new Array();
-    this._value = value;
-}
-add(func) {
-    this.funcs.push(func);
-    return func;
-}
-remove(func) {
-    this.funcs = this.funcs.filter(o => o != func);
-}
-fire(value) {
-    this.funcs.forEach(o => o(value));
-}
-get value() {
-    return this._value;
-}
-set value(value) {
-    this._value = value;
-    this.fire(value);
-}
-}
-chitu.ValueStore = ValueStore;
-})(chitu || (chitu = {}));
-
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-return new (P || (P = Promise))(function (resolve, reject) {
-function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
-step((generator = generator.apply(thisArg, _arguments || [])).next());
-});
-};
-var chitu;
-(function (chitu) {
-class Page {
-constructor(params) {
-    this.animationTime = 300;
-    this.error = chitu.Callbacks();
-    this.load = chitu.Callbacks();
-    this.loadComplete = chitu.Callbacks();
-    this.showing = chitu.Callbacks();
-    this.shown = chitu.Callbacks();
-    this.hiding = chitu.Callbacks();
-    this.hidden = chitu.Callbacks();
-    this.closing = chitu.Callbacks();
-    this.closed = chitu.Callbacks();
-    this._element = params.element;
-    this._previous = params.previous;
-    this._app = params.app;
-    this._routeData = params.routeData;
-    this._displayer = params.displayer;
-    this._actionArguments = params.actionArguments;
-    this.loadPageAction();
-}
-on_load() {
-    return this.load.fire(this, null);
-}
-on_loadComplete() {
-    return this.loadComplete.fire(this, null);
-}
-on_showing() {
-    return this.showing.fire(this, null);
-}
-on_shown() {
-    return this.shown.fire(this, null);
-}
-on_hiding() {
-    return this.hiding.fire(this, null);
-}
-on_hidden() {
-    return this.hidden.fire(this, null);
-}
-on_closing() {
-    return this.closing.fire(this, null);
-}
-on_closed() {
-    return this.closed.fire(this, null);
-}
-show() {
-    this.on_showing();
-    return this._displayer.show(this).then(o => {
-        this.on_shown();
-    });
-}
-hide() {
-    this.on_hiding();
-    return this._displayer.hide(this).then(o => {
-        this.on_hidden();
-    });
-}
-close() {
-    return this.hide().then(() => {
-        this.on_closing();
-        this._element.remove();
-        this.on_closed();
-    });
-}
-createService(type) {
-    let service = new type();
-    service.error.add((ender, error) => {
-        this.error.fire(this, error);
-    });
-    return service;
-}
-get element() {
-    return this._element;
-}
-get previous() {
-    return this._previous;
-}
-set previous(value) {
-    this._previous = value;
-}
-get routeData() {
-    return this._routeData;
-}
-get name() {
-    return this.routeData.pageName;
-}
-loadPageAction() {
-    return __awaiter(this, void 0, void 0, function* () {
-        console.assert(this._routeData != null);
-        let routeData = this._routeData;
-        var url = routeData.actionPath;
-        let actionResult = yield chitu.loadjs(url);
-        if (!actionResult)
-            throw chitu.Errors.exportsCanntNull(routeData.pageName);
-        let actionName = 'default';
-        let action = actionResult[actionName];
-        if (action == null) {
-            throw chitu.Errors.canntFindAction(routeData.pageName);
-        }
-        let actionExecuteResult;
-        if (typeof action == 'function') {
-            let actionResult = action(this);
-            if (actionResult != null && actionResult.then != null && actionResult.catch != null) {
-                actionResult.then(() => this.on_loadComplete());
+})(function () {
+    var chitu;
+    (function (chitu) {
+        const EmtpyStateData = "";
+        const DefaultPageName = "index";
+        function parseUrl(app, url) {
+            let sharpIndex = url.indexOf('#');
+            if (sharpIndex < 0) {
+                let pageName = DefaultPageName;
+                return { pageName, values: {} };
             }
+            let routeString = url.substr(sharpIndex + 1);
+            if (!routeString)
+                app.throwError(Errors.canntParseRouteString(url));
+            if (routeString.startsWith('!')) {
+                let url = createUrl(app.currentPage.name, app.currentPage.data);
+                history.replaceState(EmtpyStateData, "", url);
+                return;
+            }
+            let routePath;
+            let search;
+            let param_spliter_index = routeString.indexOf('?');
+            if (param_spliter_index > 0) {
+                search = routeString.substr(param_spliter_index + 1);
+                routePath = routeString.substring(0, param_spliter_index);
+            }
+            else {
+                routePath = routeString;
+            }
+            if (!routePath)
+                app.throwError(Errors.canntParseRouteString(routeString));
+            let values = {};
+            if (search) {
+                values = pareeUrlQuery(search);
+            }
+            let path_parts = routePath.split(this.path_spliter_char).map(o => o.trim()).filter(o => o != '');
+            if (path_parts.length < 1) {
+                app.throwError(Errors.canntParseRouteString(routeString));
+            }
+            let file_path = path_parts.join('/');
+            let pageName = path_parts.join('.');
+            return { pageName, values };
         }
-        else {
-            throw chitu.Errors.actionTypeError(routeData.pageName);
-        }
-        this.on_load();
-    });
-}
-reload() {
-    return this.loadPageAction();
-}
-}
-Page.tagName = 'div';
-chitu.Page = Page;
-})(chitu || (chitu = {}));
-class PageDisplayerImplement {
-show(page) {
-page.element.style.display = 'block';
-if (page.previous != null) {
-    page.previous.element.style.display = 'none';
-}
-return Promise.resolve();
-}
-hide(page) {
-page.element.style.display = 'none';
-if (page.previous != null) {
-    page.previous.element.style.display = 'block';
-}
-return Promise.resolve();
-}
-}
+        function pareeUrlQuery(query) {
+            let match,
+                pl = /\+/g,  // Regex for replacing addition symbol with a space
+                search = /([^&=]+)=?([^&]*)/g,
+                decode = function (s) { return decodeURIComponent(s.replace(pl, " ")); };
 
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-return new (P || (P = Promise))(function (resolve, reject) {
-function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
-step((generator = generator.apply(thisArg, _arguments || [])).next());
-});
-};
-function ajax(url, options) {
-return __awaiter(this, void 0, void 0, function* () {
-let response = yield fetch(url, options);
-let responseText = response.text();
-let p;
-if (typeof responseText == 'string') {
-    p = new Promise((reslove, reject) => {
-        reslove(responseText);
-    });
-}
-else {
-    p = responseText;
-}
-let text = yield responseText;
-let textObject;
-let isJSONContextType = (response.headers.get('content-type') || '').indexOf('json') >= 0;
-if (isJSONContextType) {
-    textObject = JSON.parse(text);
-    textObject = travelJSON(textObject);
-}
-else {
-    textObject = text;
-}
-if (response.status >= 300) {
-    let err = new Error();
-    err.method = options.method;
-    err.name = `${response.status}`;
-    err.message = isJSONContextType ? (textObject.Message || textObject.message) : textObject;
-    err.message = err.message || response.statusText;
-    throw err;
-}
-return textObject;
-function travelJSON(result) {
-    const datePattern = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/;
-    if (typeof result === 'string' && value.match(this.datePattern)) {
-        return new Date(result);
-    }
-    var stack = new Array();
-    stack.push(result);
-    while (stack.length > 0) {
-        var item = stack.pop();
-        for (var key in item) {
-            var value = item[key];
-            if (value == null)
-                continue;
-            if (value instanceof Array) {
-                for (var i = 0; i < value.length; i++) {
-                    stack.push(value[i]);
+            let urlParams = {};
+            while (match = search.exec(query))
+                urlParams[decode(match[1])] = decode(match[2]);
+
+            return urlParams;
+        }
+        function createUrl(pageName, params) {
+            let path_parts = pageName.split('.');
+            let path = path_parts.join('/');
+            if (!params)
+                return `#${path}`;
+
+            let stack = [];
+            stack.push(params);
+            while (stack.length > 0) {
+                let obj = stack.pop();
+                for (let key in obj) {
+                    if (obj[key] == null || typeof (obj[key]) == 'function') {
+                        delete obj[key];
+                        continue;
+                    }
+                    stack.push(obj[key]);
                 }
-                continue;
             }
-            if (typeof value == 'object') {
-                stack.push(value);
-                continue;
+
+            let paramsText = "";
+            for (let key in params) {
+                paramsText = paramsText + `&${key}=${params[key]}`;
             }
-            if (typeof value == 'string' && value.match(datePattern)) {
-                item[key] = new Date(value);
+            if (paramsText.length > 0)
+                paramsText = paramsText.substr(1);
+            return `#${path}?${paramsText}`;
+        }
+        function pareeUrlQuery(query) {
+            let match,
+                pl = /\+/g,  // Regex for replacing addition symbol with a space
+                search = /([^&=]+)=?([^&]*)/g,
+                decode = function (s) { return decodeURIComponent(s.replace(pl, " ")); };
+
+            let urlParams = {};
+            while (match = search.exec(query))
+                urlParams[decode(match[1])] = decode(match[2]);
+
+            return urlParams;
+        }
+        var PAGE_STACK_MAX_SIZE = 30;
+        var CACHE_PAGE_SIZE = 30;
+        var ACTION_LOCATION_FORMATER = '{controller}/{action}';
+        var VIEW_LOCATION_FORMATER = '{controller}/{action}';
+        class Application {
+            constructor(siteMap, allowCachePage) {
+                this.pageCreated = chitu.Callbacks();
+                this.pageType = chitu.Page;
+                this.pageDisplayType = PageDisplayerImplement;
+                this._runned = false;
+                this.page_stack = new Array();
+                this.cachePages = {};
+                this.allowCachePage = true;
+                this.allNodes = {};
+                this.error = chitu.Callbacks();
+                if (!siteMap) {
+                    this.throwError(Errors.argumentNull("siteMap"));
+                }
+                if (!siteMap.index)
+                    this.throwError(Errors.siteMapRootCanntNull());
+                let indexNode = this.translateSiteMapNode(siteMap.index, DefaultPageName);
+                this.travalNode(indexNode);
+                if (allowCachePage != null)
+                    this.allowCachePage = allowCachePage;
             }
+            translateSiteMapNode(source, name) {
+                let action, children;
+                let source_children;
+                if (typeof source == 'object') {
+                    action = source.action;
+                    source_children = source.children;
+                }
+                else {
+                    action = source;
+                    source_children = {};
+                }
+                children = {};
+                for (let key in source_children) {
+                    children[key] = this.translateSiteMapNode(source_children[key], key);
+                }
+                return {
+                    name,
+                    action,
+                    level: 0,
+                    children
+                };
+            }
+            travalNode(node) {
+                if (node == null)
+                    throw Errors.argumentNull('parent');
+                let children = node.children || {};
+                if (this.allNodes[node.name]) {
+                    this.throwError(Errors.duplicateSiteMapNode(node.name));
+                }
+                this.allNodes[node.name] = node;
+                for (let key in children) {
+                    children[key].level = node.level + 1;
+                    this.travalNode(children[key]);
+                }
+            }
+            parseUrl(url) {
+                let routeData = parseUrl(this, url);
+                return routeData;
+            }
+            createUrl(pageName, values) {
+                return createUrl(pageName, values);
+            }
+            on_pageCreated(page) {
+                return this.pageCreated.fire(this, page);
+            }
+            get currentPage() {
+                if (this.page_stack.length > 0)
+                    return this.page_stack[this.page_stack.length - 1];
+                return null;
+            }
+            get pages() {
+                return this.page_stack;
+            }
+            getPage(pageName, values) {
+                let data = this.cachePages[pageName];
+                if (data) {
+                    data.hitCount = (data.hitCount || 0) + 1;
+                    data.page.data = values || {};
+                    return { page: data.page, isNew: false };
+                }
+                let previous_page = this.pages[this.pages.length - 1];
+                let element = this.createPageElement(pageName);
+                let displayer = new this.pageDisplayType(this);
+                let siteMapNode = this.findSiteMapNode(pageName);
+                let action = siteMapNode ?
+                    siteMapNode.action :
+                    (page) => {
+                        page.element.innerHTML = `page ${pageName} not found`;
+                        console.log(`page ${pageName} not found`);
+                    };
+                console.assert(this.pageType != null);
+                let page = new this.pageType({
+                    app: this,
+                    previous: previous_page,
+                    name: pageName,
+                    data: values,
+                    displayer,
+                    element,
+                    action,
+                });
+                let keyes = Object.keys(this.cachePages);
+                if (keyes.length > CACHE_PAGE_SIZE) {
+                    let key = keyes[0];
+                    for (let i = 1; i < keyes.length; i++) {
+                        let data0 = this.cachePages[key];
+                        let data1 = this.cachePages[keyes[i]];
+                        if (data1.hitCount < data0.hitCount) {
+                            key = keyes[i];
+                        }
+                    }
+                    this.cachePages[key].page.close();
+                    delete this.cachePages[key];
+                }
+                let page_onloadComplete = (sender, args) => {
+                    if (this.allowCachePage)
+                        this.cachePages[sender.name] = { page: sender, hitCount: 1 };
+                };
+                let page_onclosed = (sender) => {
+                    delete this.cachePages[sender.name];
+                    this.page_stack = this.page_stack.filter(o => o != sender);
+                    page.closed.remove(page_onclosed);
+                    page.loadComplete.remove(page_onloadComplete);
+                };
+                page.closed.add(page_onclosed);
+                page.loadComplete.add(page_onloadComplete);
+                this.on_pageCreated(page);
+                return { page, isNew: true };
+            }
+            createPageElement(pageName) {
+                let element = document.createElement(chitu.Page.tagName);
+                document.body.appendChild(element);
+                return element;
+            }
+            hashchange() {
+                var routeData = this.parseUrl(location.href);
+                if (routeData == null) {
+                    return;
+                }
+                var page = this.findPageFromStack(routeData.pageName);
+                let previousPageIndex = this.page_stack.length - 2;
+                this.showPageByUrl(location.href);
+            }
+            run() {
+                if (this._runned)
+                    return;
+                var app = this;
+                this.hashchange();
+                window.addEventListener('popstate', (event) => {
+                    if (event.state == Application.skipStateName)
+                        return;
+                    this.hashchange();
+                });
+                this._runned = true;
+            }
+            findPageFromStack(name) {
+                for (var i = this.page_stack.length - 1; i >= 0; i--) {
+                    var page = this.page_stack[i];
+                    if (page != null && page.name == name)
+                        return page;
+                }
+                return null;
+            }
+            showPage(pageName, args) {
+                if (!pageName)
+                    throw Errors.argumentNull('pageName');
+                if (this.currentPage != null && this.currentPage.name == pageName)
+                    return;
+                args = args || {};
+                let oldCurrentPage = this.currentPage;
+                let page = this.findPageFromStack(pageName);
+                let isNewPage = false;
+                let previousPageIndex = this.page_stack.length - 2;
+                if (page != null && this.page_stack.indexOf(page) == previousPageIndex) {
+                    this.closeCurrentPage();
+                }
+                else {
+                    let obj = this.getPage(pageName, args);
+                    page = obj.page;
+                    isNewPage = obj.isNew;
+                    this.pushPage(page);
+                    page.show();
+                    console.assert(page == this.currentPage, "page is not current page");
+                }
+                let preRouteData = null;
+                if (oldCurrentPage) {
+                    preRouteData = oldCurrentPage.data;
+                    oldCurrentPage.on_deactive();
+                }
+                console.assert(this.currentPage != null);
+                if (isNewPage) {
+                    this.currentPage.on_active(args);
+                }
+                else {
+                    let onload = (sender, args) => {
+                        sender.on_active(args);
+                        sender.load.remove(onload);
+                    };
+                    this.currentPage.load.add(onload);
+                }
+                return this.currentPage;
+            }
+            showPageByUrl(url, args) {
+                if (!url)
+                    this.throwError(Errors.argumentNull('url'));
+                var routeData = this.parseUrl(url);
+                if (routeData == null) {
+                    this.throwError(Errors.noneRouteMatched(url));
+                }
+                Object.assign(routeData.values, args || {});
+                return this.showPage(routeData.pageName, routeData.values);
+            }
+            pushPage(page) {
+                if (this.currentPage != null) {
+                    let currentSiteNode = this.findSiteMapNode(this.currentPage.name);
+                    let pageNode = this.findSiteMapNode(page.name);
+                    if (currentSiteNode != null && pageNode != null && pageNode.level <= currentSiteNode.level) {
+                        this.clearPageStack();
+                    }
+                }
+                let previous = this.currentPage;
+                this.page_stack.push(page);
+                if (this.page_stack.length > PAGE_STACK_MAX_SIZE) {
+                    let c = this.page_stack.shift();
+                }
+                page.previous = previous;
+            }
+            findSiteMapNode(pageName) {
+                return this.allNodes[pageName];
+            }
+            setLocationHash(url) {
+                history.pushState(EmtpyStateData, "", url);
+            }
+            closeCurrentPage() {
+                if (this.page_stack.length <= 0)
+                    return;
+                var page = this.page_stack.pop();
+                if (this.allowCachePage) {
+                    page.previous = this.currentPage;
+                    page.hide();
+                }
+                else {
+                    page.close();
+                }
+            }
+            clearPageStack() {
+                if (this.allowCachePage) {
+                    this.page_stack.forEach(o => o.hide());
+                }
+                else {
+                    this.page_stack.forEach(o => {
+                        o.close();
+                    });
+                }
+                this.page_stack = [];
+            }
+            redirect(pageName, args) {
+                let result = this.showPage(pageName, args);
+                let url = this.createUrl(pageName, args);
+                this.setLocationHash(url);
+                return result;
+            }
+            back() {
+                history.back();
+            }
+            throwError(err, page) {
+                let e = err;
+                this.error.fire(this, e, page);
+            }
+            loadjs(path) {
+                return new Promise((reslove, reject) => {
+                    requirejs([path], function (result) {
+                        reslove(result);
+                    }, function (err) {
+                        reject(err);
+                    });
+                });
+            }
+        }
+        Application.skipStateName = 'skip';
+        chitu.Application = Application;
+    })(chitu || (chitu = {}));
+    class Errors {
+        static pageNodeNotExists(pageName) {
+            let msg = `Page node named ${pageName} is not exists.`;
+            return new Error(msg);
+        }
+        static argumentNull(paramName) {
+            var msg = `The argument "${paramName}" cannt be null.`;
+            return new Error(msg);
+        }
+        static modelFileExpecteFunction(script) {
+            var msg = `The eval result of script file "${script}" is expected a function.`;
+            return new Error(msg);
+        }
+        static paramTypeError(paramName, expectedType) {
+            var msg = `The param "${paramName}" is expected "${expectedType}" type.`;
+            return new Error(msg);
+        }
+        static paramError(msg) {
+            return new Error(msg);
+        }
+        static viewNodeNotExists(name) {
+            var msg = `The view node "${name}" is not exists.`;
+            return new Error(msg);
+        }
+        static pathPairRequireView(index) {
+            var msg = `The view value is required for path pair, but the item with index "${index}" is miss it.`;
+            return new Error(msg);
+        }
+        static notImplemented(name) {
+            var msg = `'The method "${name}" is not implemented.'`;
+            return new Error(msg);
+        }
+        static routeExists(name) {
+            var msg = `Route named "${name}" is exists.`;
+            return new Error(msg);
+        }
+        static noneRouteMatched(url) {
+            var msg = `None route matched with url "${url}".`;
+            var error = new Error(msg);
+            return error;
+        }
+        static emptyStack() {
+            return new Error('The stack is empty.');
+        }
+        static canntParseUrl(url) {
+            var msg = `Can not parse the url "${url}" to route data.`;
+            return new Error(msg);
+        }
+        static canntParseRouteString(routeString) {
+            var msg = `Can not parse the route string "${routeString}" to route data.;`;
+            return new Error(msg);
+        }
+        static routeDataRequireController() {
+            var msg = 'The route data does not contains a "controller" file.';
+            return new Error(msg);
+        }
+        static routeDataRequireAction() {
+            var msg = 'The route data does not contains a "action" file.';
+            return new Error(msg);
+        }
+        static viewCanntNull() {
+            var msg = 'The view or viewDeferred of the page cannt null.';
+            return new Error(msg);
+        }
+        static createPageFail(pageName) {
+            var msg = `Create page "${pageName}" fail.`;
+            return new Error(msg);
+        }
+        static actionTypeError(pageName) {
+            let msg = `The action in page '${pageName}' is expect as function.`;
+            return new Error(msg);
+        }
+        static canntFindAction(pageName) {
+            let msg = `Cannt find action in page '${pageName}', is the exports has default field?`;
+            return new Error(msg);
+        }
+        static exportsCanntNull(pageName) {
+            let msg = `Exports of page '${pageName}' is null.`;
+            return new Error(msg);
+        }
+        static scrollerElementNotExists() {
+            let msg = "Scroller element is not exists.";
+            return new Error(msg);
+        }
+        static resourceExists(resourceName, pageName) {
+            let msg = `Rosource '${resourceName}' is exists in the resources of page '${pageName}'.`;
+            return new Error(msg);
+        }
+        static siteMapRootCanntNull() {
+            let msg = `The site map root node can not be null.`;
+            return new Error(msg);
+        }
+        static duplicateSiteMapNode(name) {
+            let msg = `The site map node ${name} is exists.`;
+            return new Error(name);
         }
     }
-    return result;
-}
-});
-}
-var chitu;
-(function (chitu) {
-class Service {
-constructor() {
-    this.error = chitu.Callbacks();
-}
-ajax(url, options) {
-    options.headers = Object.assign(Service.settings.headers || {}, options.headers || {});
-    return new Promise((reslove, reject) => {
-        let timeId;
-        if (options.method == 'get') {
-            timeId = setTimeout(() => {
-                let err = new Error();
-                err.name = 'timeout';
-                err.message = '网络连接超时';
-                reject(err);
-                this.error.fire(this, err);
-                clearTimeout(timeId);
-            }, Service.settings.ajaxTimeout * 1000);
+    var chitu;
+    (function (chitu) {
+        class Callback {
+            constructor() {
+                this.funcs = new Array();
+            }
+            add(func) {
+                this.funcs.push(func);
+            }
+            remove(func) {
+                this.funcs = this.funcs.filter(o => o != func);
+            }
+            fire(...args) {
+                this.funcs.forEach(o => o(...args));
+            }
         }
-        ajax(url, options)
-            .then(data => {
-            reslove(data);
-            if (timeId)
-                clearTimeout(timeId);
-        })
-            .catch(err => {
-            reject(err);
-            this.error.fire(this, err);
-            if (timeId)
-                clearTimeout(timeId);
+        chitu.Callback = Callback;
+        function Callbacks() {
+            return new Callback();
+        }
+        chitu.Callbacks = Callbacks;
+        class ValueStore {
+            constructor(value) {
+                this.items = new Array();
+                this._value = value;
+            }
+            add(func, sender) {
+                this.items.push({ func, sender });
+                return func;
+            }
+            remove(func) {
+                this.items = this.items.filter(o => o.func != func);
+            }
+            fire(value) {
+                this.items.forEach(o => o.func(value, o.sender));
+            }
+            get value() {
+                return this._value;
+            }
+            set value(value) {
+                this._value = value;
+                this.fire(value);
+            }
+        }
+        chitu.ValueStore = ValueStore;
+    })(chitu || (chitu = {}));
+    var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+        return new (P || (P = Promise))(function (resolve, reject) {
+            function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+            function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+            function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+            step((generator = generator.apply(thisArg, _arguments || [])).next());
         });
-    });
-}
-getByJson(url, data) {
-    console.assert(url.indexOf('?') < 0);
-    if (data) {
-        url = url + '?' + JSON.stringify(data);
-    }
-    return this.ajaxByJSON(url, null, 'get');
-}
-postByJson(url, data) {
-    return this.ajaxByJSON(url, data, 'post');
-}
-deleteByJson(url, data) {
-    return this.ajaxByJSON(url, data, 'delete');
-}
-putByJson(url, data) {
-    return this.ajaxByJSON(url, data, 'put');
-}
-get(url, data) {
-    data = data || {};
-    let urlParams = '';
-    for (let key in data) {
-        urlParams = urlParams + `&${key}=${data[key]}`;
-    }
-    console.assert(url.indexOf('?') < 0);
-    url = url + '?' + urlParams;
-    let options = {
-        method: 'get',
     };
-    return this.ajax(url, options);
-}
-post(url, data) {
-    return this.ajaxByForm(url, data, 'post');
-}
-put(url, data) {
-    return this.ajaxByForm(url, data, 'put');
-}
-delete(url, data) {
-    return this.ajaxByForm(url, data, 'delete');
-}
-ajaxByForm(url, data, method) {
-    var form = new FormData();
-    for (let key in data) {
-        form.append(key, data[key]);
+    var chitu;
+    (function (chitu) {
+        class Page {
+            constructor(params) {
+                this.animationTime = 300;
+                this.data = null;
+                this.load = chitu.Callbacks();
+                this.loadComplete = chitu.Callbacks();
+                this.showing = chitu.Callbacks();
+                this.shown = chitu.Callbacks();
+                this.hiding = chitu.Callbacks();
+                this.hidden = chitu.Callbacks();
+                this.closing = chitu.Callbacks();
+                this.closed = chitu.Callbacks();
+                this.active = chitu.Callbacks();
+                this.deactive = chitu.Callbacks();
+                this._element = params.element;
+                this._previous = params.previous;
+                this._app = params.app;
+                this._displayer = params.displayer;
+                this._action = params.action;
+                this.data = params.data;
+                this._name = params.name;
+                this.loadPageAction(this.name);
+            }
+            on_load() {
+                return this.load.fire(this, this.data);
+            }
+            on_loadComplete() {
+                return this.loadComplete.fire(this, this.data);
+            }
+            on_showing() {
+                return this.showing.fire(this, this.data);
+            }
+            on_shown() {
+                return this.shown.fire(this, this.data);
+            }
+            on_hiding() {
+                return this.hiding.fire(this, this.data);
+            }
+            on_hidden() {
+                return this.hidden.fire(this, this.data);
+            }
+            on_closing() {
+                return this.closing.fire(this, this.data);
+            }
+            on_closed() {
+                return this.closed.fire(this, this.data);
+            }
+            on_active(args) {
+                console.assert(args != null, 'args is null');
+                Object.assign(this.data, args);
+                this.active.fire(this, args);
+            }
+            on_deactive() {
+                this.deactive.fire(this, this.data);
+            }
+            show() {
+                this.on_showing();
+                return this._displayer.show(this).then(o => {
+                    this.on_shown();
+                });
+            }
+            hide() {
+                this.on_hiding();
+                return this._displayer.hide(this).then(o => {
+                    this.on_hidden();
+                });
+            }
+            close() {
+                return this.hide().then(() => {
+                    this.on_closing();
+                    this._element.remove();
+                    this.on_closed();
+                });
+            }
+            createService(type) {
+                type = type || chitu.Service;
+                let service = new type();
+                service.error.add((ender, error) => {
+                    this._app.throwError(error, this);
+                });
+                return service;
+            }
+            get element() {
+                return this._element;
+            }
+            get previous() {
+                return this._previous;
+            }
+            set previous(value) {
+                this._previous = value;
+            }
+            get name() {
+                return this._name;
+            }
+            loadPageAction(pageName) {
+                return __awaiter(this, void 0, void 0, function* () {
+                    let action;
+                    if (typeof this._action == 'function') {
+                        action = this._action;
+                    }
+                    else {
+                        let actionResult;
+                        try {
+                            actionResult = yield this._app.loadjs(this._action);
+                        }
+                        catch (err) {
+                            this._app.throwError(err, this);
+                        }
+                        if (!actionResult)
+                            this._app.throwError(Errors.exportsCanntNull(pageName), this);
+                        let actionName = 'default';
+                        action = actionResult[actionName];
+                        if (action == null) {
+                            this._app.throwError(Errors.canntFindAction(pageName), this);
+                        }
+                    }
+                    let actionExecuteResult;
+                    if (typeof action == 'function') {
+                        let actionResult = action(this);
+                        if (actionResult != null && actionResult.then != null && actionResult.catch != null) {
+                            actionResult.then(() => this.on_loadComplete());
+                        }
+                        else {
+                            this.on_loadComplete();
+                        }
+                    }
+                    else {
+                        this._app.throwError(Errors.actionTypeError(pageName), this);
+                    }
+                    this.on_load();
+                });
+            }
+            reload() {
+                return this.loadPageAction(this.name);
+            }
+        }
+        Page.tagName = 'div';
+        chitu.Page = Page;
+    })(chitu || (chitu = {}));
+    class PageDisplayerImplement {
+        show(page) {
+            page.element.style.display = 'block';
+            if (page.previous != null) {
+                page.previous.element.style.display = 'none';
+            }
+            return Promise.resolve();
+        }
+        hide(page) {
+            page.element.style.display = 'none';
+            if (page.previous != null) {
+                page.previous.element.style.display = 'block';
+            }
+            return Promise.resolve();
+        }
     }
-    return this.ajax(url, { body: form, method });
-}
-ajaxByJSON(url, data, method) {
-    let headers = {};
-    headers['content-type'] = 'application/json';
-    let body;
-    if (data)
-        body = JSON.stringify(data);
-    let options = {
-        headers,
-        body,
-        method
-    };
-    return this.ajax(url, options);
-}
-}
-Service.settings = {
-ajaxTimeout: 30,
-headers: {}
-};
-chitu.Service = Service;
-})(chitu || (chitu = {}));
+    function ajax(url, options) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let response = yield fetch(url, options);
+            let responseText = response.text();
+            let p;
+            if (typeof responseText == 'string') {
+                p = new Promise((reslove, reject) => {
+                    reslove(responseText);
+                });
+            }
+            else {
+                p = responseText;
+            }
+            let text = yield responseText;
+            let textObject;
+            let isJSONContextType = (response.headers.get('content-type') || '').indexOf('json') >= 0;
+            if (isJSONContextType) {
+                textObject = JSON.parse(text);
+            }
+            else {
+                textObject = text;
+            }
+            if (response.status >= 300) {
+                let err = new Error();
+                err.method = options.method;
+                err.name = `${response.status}`;
+                err.message = isJSONContextType ? (textObject.Message || textObject.message) : textObject;
+                err.message = err.message || response.statusText;
+                throw err;
+            }
+            return textObject;
+        });
+    }
+    function callAjax(url, options, service, error) {
+        return new Promise((reslove, reject) => {
+            let timeId;
+            if (options.method == 'get') {
+                timeId = setTimeout(() => {
+                    let err = new Error();
+                    err.name = 'timeout';
+                    err.message = '网络连接超时';
+                    reject(err);
+                    error.fire(service, err);
+                    clearTimeout(timeId);
+                }, chitu.Service.settings.ajaxTimeout * 1000);
+            }
+            ajax(url, options)
+                .then(data => {
+                    reslove(data);
+                    if (timeId)
+                        clearTimeout(timeId);
+                })
+                .catch(err => {
+                    reject(err);
+                    error.fire(service, err);
+                    if (timeId)
+                        clearTimeout(timeId);
+                });
+        });
+    }
+    var chitu;
+    (function (chitu) {
+        class Service {
+            constructor() {
+                this.error = chitu.Callbacks();
+            }
+            ajax(url, options) {
+                options = options || {};
+                let data = options.data;
+                let method = options.method;
+                let headers = options.headers || [];
+                let body;
+                if (data != null) {
+                    let is_json = (headers['content-type'] || '').indexOf('json') >= 0;
+                    if (is_json) {
+                        body = JSON.stringify(data);
+                    }
+                    else {
+                        body = new URLSearchParams();
+                        for (let key in data) {
+                            body.append(key, data[key]);
+                        }
+                    }
+                }
+                return callAjax(url, { headers, body, method }, this, this.error);
+            }
+        }
+        Service.settings = {
+            ajaxTimeout: 30,
+        };
+        chitu.Service = Service;
+    })(chitu || (chitu = {}));
+    var chitu;
+    (function (chitu) {
+        function combinePath(path1, path2) {
+            if (!path1)
+                throw Errors.argumentNull('path1');
+            if (!path2)
+                throw Errors.argumentNull('path2');
+            path1 = path1.trim();
+            if (!path1.endsWith('/'))
+                path1 = path1 + '/';
+            return path1 + path2;
+        }
+    })(chitu || (chitu = {}));
 
-var chitu;
-(function (chitu) {
-function combinePath(path1, path2) {
-if (!path1)
-    throw chitu.Errors.argumentNull('path1');
-if (!path2)
-    throw chitu.Errors.argumentNull('path2');
-path1 = path1.trim();
-if (!path1.endsWith('/'))
-    path1 = path1 + '/';
-return path1 + path2;
-}
-chitu.combinePath = combinePath;
-function loadjs(path) {
-return new Promise((reslove, reject) => {
-    requirejs([path], function (result) {
-        reslove(result);
-    }, function (err) {
-        reject(err);
-    });
+    window['chitu'] = window['chitu'] || chitu
+
+    return chitu;
 });
-}
-chitu.loadjs = loadjs;
-})(chitu || (chitu = {}));
-
-window['chitu'] = window['chitu'] || chitu 
-                    
-return chitu;
-    });

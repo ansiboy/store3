@@ -1,7 +1,11 @@
 import { Service, shoppingCart, userData, ValueStore } from 'services';
-import { Application as BaseApplication } from 'chitu.mobile';
+import { Application as BaseApplication, Page as BasePage } from 'chitu.mobile';
 import errorHandle from 'errorHandle';
 import * as ui from 'ui';
+import { SiteMap, SiteMapNode } from 'chitu';
+export { app, Page, searchNavBar } from 'application';
+import { app } from 'application';
+export { PageProps, default as siteMap } from 'siteMap';
 
 /** 监听 shoppingCart 错误  */
 shoppingCart.error.add((sender, error) => {
@@ -16,7 +20,6 @@ export let isAndroid = navigator.userAgent.indexOf('Android') > -1;
 let allowImmersionHeader = false;
 let topLevelPages = ['home.index', 'home.class', 'shopping.shoppingCart', 'home.newsList', 'user.index'];
 
-const loadingClassName = 'loading';
 
 if (isCordovaApp && !isAndroid) {
     allowImmersionHeader = true;
@@ -87,136 +90,21 @@ export class Menu extends React.Component<{ pageName: string }, { itemsCount: nu
     }
 }
 
-export class Page extends chitu.Page {
-    private allowSwipeBackGestrue;
-    private displayStatic;
 
-    constructor(params) {
-        super(params);
+//shopping_shoppingCartNoMenu
 
 
-        let className = this.routeData.pageName.split('.').join('-');
-        this.element.className = (allowImmersionHeader ? 'page immersion ' : 'page ') + className;
-        this.displayStatic = topLevelPages.indexOf(this.name) >= 0 || this.name == 'home.search';
 
-        //=========================================
-        // 在 shown 加入转动，而不是一开始加，避免闪烁
-        this.shown.add((sender: Page, args) => {
-            let i = sender.element.querySelector('section.loading i') as HTMLElement;
-            if (i)
-                i.className = i.className + ' icon-spin';
-        })
-        //=========================================
+// export let app = window['app'] = new Application();
 
-        //===================================================
-        // IOS WEB 浏览器自带滑动返回
-        this.allowSwipeBackGestrue = (isCordovaApp || isAndroid) && topLevelPages.indexOf(this.routeData.pageName) < 0;
-        //===================================================readonly
-
-        this.renderLoading();
-    }
-
-    private renderLoading() {
-        ReactDOM.render(
-            <div>
-                <section className={loadingClassName}>
-                    <div className="spin">
-                        <i className="icon-spinner icon-spin"></i>
-                    </div>
-                </section>
-            </div>,
-            this.element
-        );
-    }
-
-    private renderError() {
-        ReactDOM.render(
-            <div>
-                {this.createHeader()}
-
-                <div className="norecords">
-                    <div className="icon">
-                        <i className="icon-rss">
-                        </i>
-                    </div>
-                    <h4 className="text"></h4>
-                    <button onClick={() => this.reload()} className="btn btn-default">点击重新加载页面</button>
-                </div>
-
-            </div>, this.element
-        );
-    }
-
-    private createHeader() {
-        let noneHeaderPages = ['user.index'];
-        if (noneHeaderPages.indexOf(this.routeData.pageName) >= 0) {
-            return;
-        }
-
-        let navBar;
-        switch (this.routeData.pageName) {
-            case 'home.product':
-                navBar = productNavBar();
-                break;
-            case 'home.search':
-                navBar = searchNavBar();
-                break;
-            default:
-                let isTopPage = topLevelPages.indexOf(this.routeData.pageName) >= 0;
-                navBar = defaultNavBar({ showBackButton: !isTopPage });
-                break;
-        }
-
-        return <header>{(navBar)}</header>;
-    }
-
-    createService<T extends Service>(serviceType: { new(): T }): T {
-        let result = new serviceType();
-        result.error.add((sender, error) => {
-            errorHandle(app, error);
-        })
-        return result;
-    }
-
-    reload() {
-        let result = super.reload();
-        this.renderLoading();
-        return result;
-    }
-}
-
-export class Application extends BaseApplication {
-    private topLevelPages = ['home.index', 'home.class', 'shopping.shoppingCart', 'home.newsList', 'user.index'];
-    constructor() {
-        super();
-        this.pageType = Page;
-    }
-
-    protected parseRouteString(routeString: string) {
-        let routeData = new chitu.RouteData(this.fileBasePath, routeString, '_');
-        return routeData;
-    }
-
-    protected createPage(routeData: chitu.RouteData, args) {
-        let page = super.createPage(routeData, args);// as Page;
-
-        let path = routeData.actionPath.substr(routeData.basePath.length);
-        let cssPath = `css!content/app` + path;
-        requirejs([cssPath]);
-
-        return page;
-    }
-}
-
-export let app = window['app'] = new Application();
-app.backFail.add(() => {
-    app.redirect(config.defaultUrl);
-});
+// app.backFail.add(() => {
+//     app.redirect(config.defaultUrl);
+// });
 
 
-if (!location.hash) {
-    app.redirect(config.defaultUrl);
-}
+// if (!location.hash) {
+//     app.redirect(config.defaultUrl);
+// }
 
 //============================================================
 // ui
@@ -247,25 +135,7 @@ export function defaultNavBar(options?: { title?: string, showBackButton?: boole
     );
 }
 
-export function productNavBar() {
-    return (
-        <nav style={{ opacity: 1, backgroundColor: 'unset' }}>
-            <button onClick={() => app.back()} className="leftButton">
-                <i className="icon-chevron-left"></i>
-            </button>
-        </nav>
-    );
-}
 
-export function searchNavBar() {
-    return (
-        <nav style={{ backgroundColor: 'white', borderBottom: 'solid 1px #ccc' }}>
-            <button onClick={() => window['app'].back()} className="leftButton">
-                <i className="icon-chevron-left"></i>
-            </button>
-        </nav>
-    );
-}
 //============================================================
 export function formatDate(date: Date) {
     if (!date.getFullYear)

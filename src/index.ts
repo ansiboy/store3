@@ -66,6 +66,13 @@ requirejs.config({
         },
         ui: {
             exports: 'ui'
+        },
+        chitu: {
+            exports: 'chitu'
+        },
+        'chitu.mobile': {
+            exports: 'chitu.mobile',
+            deps: ['chitu']
         }
     },
     paths: {

@@ -1,6 +1,6 @@
 import chitu = require('chitu');
 
-const REMOTE_HOST = 'service4.alinq.cn';
+const REMOTE_HOST = 'service.alinq.cn';
 
 
 let protocol = location.protocol;
@@ -36,6 +36,9 @@ export function imageUrl(path: string, width?: number) {
         let index = path.indexOf('/');
         console.assert(index > 0);
         path = path.substr(index);
+    }
+    else if (path.startsWith('data:image')) {
+        return path;
     }
     else if (path[0] != '/') {
         path = '/' + path;

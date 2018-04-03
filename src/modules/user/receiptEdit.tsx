@@ -200,7 +200,7 @@ export default async function (page: Page) {
     }
 
     let receiptInfo: ReceiptInfo;
-    let routeValues = page.routeData.values as ReceiptEditPageArguments;
+    let routeValues = page.data as ReceiptEditPageArguments;
     let id = routeValues.id;
     if (id) {
         receiptInfo = await shop.receiptInfo(id);

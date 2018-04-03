@@ -1,101 +1,124 @@
 declare namespace chitu {
-    class RouteData {
-        private _parameters;
-        private path_string;
-        private path_spliter_char;
-        private path_contact_char;
-        private param_spliter;
-        private name_spliter_char;
-        private _pathBase;
-        private _pageName;
-        private _actionPath;
-        private _routeString;
-        private _loadCompleted;
-        constructor(basePath: string, routeString: string, pathSpliterChar?: string);
-        parseRouteString(): void;
-        private pareeUrlQuery(query);
-        readonly basePath: string;
-        readonly values: any;
-        readonly pageName: string;
-        readonly routeString: string;
-        readonly actionPath: string;
-        readonly loadCompleted: boolean;
+    type ActionType = ((page: Page) => void) | string;
+    type SiteMapChildren<T extends SiteMapNode> = {
+        [key: string]: T | ((page: Page) => void) | string;
+    };
+    interface SiteMapNode {
+        action: ActionType;
+        children?: SiteMapChildren<this>;
+    }
+    interface SiteMap<T extends SiteMapNode> {
+        index: T | ActionType;
     }
     class Application {
-        pageCreated: Callback<Application, Page>;
+        static skipStateName: string;
+        pageCreated: Callback1<Application, Page>;
         protected pageType: PageConstructor;
         protected pageDisplayType: PageDisplayConstructor;
         private _runned;
         private zindex;
         private page_stack;
         private cachePages;
-        fileBasePath: string;
-        backFail: Callback<Application, {}>;
-        constructor();
-        protected parseRouteString(routeString: string): RouteData;
+        private allowCachePage;
+        private allNodes;
+        error: Callback2<Application, AppError, Page>;
+        constructor(siteMap: SiteMap<SiteMapNode>, allowCachePage?: boolean);
+        private translateSiteMapNode(source, name);
+        private travalNode(node);
+        protected parseUrl(url: string): {
+            pageName: string;
+            values: PageDataType;
+        };
+        protected createUrl(pageName: string, values: {
+            [key: string]: string;
+        }): string;
         private on_pageCreated(page);
         readonly currentPage: Page;
         readonly pages: Array<Page>;
-        protected createPage(routeData: RouteData, actionArguments: any): Page;
-        protected createPageElement(routeData: chitu.RouteData): HTMLElement;
+        private getPage(pageName, values?);
+        protected createPageElement(pageName: string): HTMLElement;
         protected hashchange(): void;
         run(): void;
-        getPage(name: string): Page;
-        private getPageByRouteString(routeString);
-        showPage(routeString: string, args?: any): Page;
-        setLocationHash(routeString: string): void;
-        closeCurrentPage();
+        findPageFromStack(name: string): Page;
+        showPage(pageName: string, args?: any): Page;
+        private showPageByUrl(url, args?);
+        private pushPage(page);
+        private findSiteMapNode(pageName);
+        setLocationHash(url: string): void;
+        closeCurrentPage(): void;
         private clearPageStack();
-        redirect(routeString: string, args?: any): Page;
-        back(args?: any): void;
+        redirect(pageName: string, args?: any): Page;
+        back(): void;
+        throwError(err: Error, page?: Page): void;
+        loadjs(path: any): Promise<any>;
     }
 }
-
+declare class Errors {
+    static pageNodeNotExists(pageName: string): Error;
+    static argumentNull(paramName: string): Error;
+    static modelFileExpecteFunction(script: any): Error;
+    static paramTypeError(paramName: string, expectedType: string): Error;
+    static paramError(msg: string): Error;
+    static viewNodeNotExists(name: any): Error;
+    static pathPairRequireView(index: any): Error;
+    static notImplemented(name: any): Error;
+    static routeExists(name: any): Error;
+    static noneRouteMatched(url: any): Error;
+    static emptyStack(): Error;
+    static canntParseUrl(url: string): Error;
+    static canntParseRouteString(routeString: string): Error;
+    static routeDataRequireController(): Error;
+    static routeDataRequireAction(): Error;
+    static viewCanntNull(): Error;
+    static createPageFail(pageName: string): Error;
+    static actionTypeError(pageName: string): Error;
+    static canntFindAction(pageName: any): Error;
+    static exportsCanntNull(pageName: string): Error;
+    static scrollerElementNotExists(): Error;
+    static resourceExists(resourceName: string, pageName: string): Error;
+    static siteMapRootCanntNull(): Error;
+    static duplicateSiteMapNode(name: string): Error;
+}
 declare namespace chitu {
-    class Errors {
-        static argumentNull(paramName: string): Error;
-        static modelFileExpecteFunction(script: any): Error;
-        static paramTypeError(paramName: string, expectedType: string): Error;
-        static paramError(msg: string): Error;
-        static viewNodeNotExists(name: any): Error;
-        static pathPairRequireView(index: any): Error;
-        static notImplemented(name: any): Error;
-        static routeExists(name: any): Error;
-        static noneRouteMatched(url: any): Error;
-        static emptyStack(): Error;
-        static canntParseUrl(url: string): Error;
-        static canntParseRouteString(routeString: string): Error;
-        static routeDataRequireController(): Error;
-        static routeDataRequireAction(): Error;
-        static viewCanntNull(): Error;
-        static createPageFail(pageName: string): Error;
-        static actionTypeError(pageName: string): Error;
-        static canntFindAction(pageName: any): Error;
-        static exportsCanntNull(pageName: string): void;
-        static scrollerElementNotExists(): Error;
-        static resourceExists(resourceName: string, pageName: string): Error;
+    interface AppError extends Error {
+        processed: boolean;
     }
 }
-
 declare namespace chitu {
-    class Callback<S, A> {
+    class Callback {
         private funcs;
         constructor();
-        add(func: (sender: S, args: A) => any): void;
-        remove(func: (sender: S, args: A) => any): void;
-        fire(sender: S, args: A): void;
+        add(func: (...args: Array<any>) => any): void;
+        remove(func: (...args: Array<any>) => any): void;
+        fire(...args: Array<any>): void;
     }
-    function Callbacks<S, A>(): Callback<S, A>;
-    function fireCallback<S, A>(callback: Callback<S, A>, sender: S, args: A): void;
+    interface Callback1<S, A> extends Callback {
+        add(func: (sender: S, arg: A) => any): any;
+        remove(func: (sender: S, arg: A) => any): any;
+        fire(sender: S, arg: A): any;
+    }
+    interface Callback2<S, A, A1> extends Callback {
+        add(func: (sender: S, arg: A, arg1: A1) => any): any;
+        remove(func: (sender: S, arg: A, arg1: A1) => any): any;
+        fire(sender: S, arg: A, arg1: A1): any;
+    }
+    function Callbacks<S, A, A1>(): Callback2<S, A, A1>;
+    function Callbacks<S, A>(): Callback1<S, A>;
+    type ValueChangedCallback<T> = (args: T, sender: any) => void;
+    class ValueStore<T> {
+        private items;
+        private _value;
+        constructor(value?: T);
+        add(func: ValueChangedCallback<T>, sender?: any): ValueChangedCallback<T>;
+        remove(func: ValueChangedCallback<T>): void;
+        fire(value: T): void;
+        value: T;
+    }
 }
-
 declare namespace chitu {
-    interface PageActionConstructor {
-        new (page: Page): any;
-    }
-    interface PageConstructor {
-        new (args: PageParams): Page;
-    }
+    type PageDataType = {
+        [key: string]: any;
+    };
     interface PageDisplayConstructor {
         new (app: Application): PageDisplayer;
     }
@@ -105,11 +128,12 @@ declare namespace chitu {
     }
     interface PageParams {
         app: Application;
-        routeData: RouteData;
+        action: ActionType;
         element: HTMLElement;
         displayer: PageDisplayer;
         previous?: Page;
-        actionArguments?: any;
+        name: string;
+        data: PageDataType;
     }
     class Page {
         private animationTime;
@@ -117,46 +141,83 @@ declare namespace chitu {
         private _element;
         private _previous;
         private _app;
-        private _routeData;
         private _displayer;
-        private _actionArguments;
+        private _action;
+        private _name;
         static tagName: string;
-        allowCache: boolean;
-        load: Callback<this, any>;
-        showing: Callback<this, {}>;
-        shown: Callback<this, {}>;
-        hiding: Callback<this, {}>;
-        hidden: Callback<this, {}>;
-        closing: Callback<this, {}>;
-        closed: Callback<this, {}>;
+        data: PageDataType;
+        load: Callback1<this, PageDataType>;
+        loadComplete: Callback1<this, PageDataType>;
+        showing: Callback1<this, PageDataType>;
+        shown: Callback1<this, PageDataType>;
+        hiding: Callback1<this, PageDataType>;
+        hidden: Callback1<this, PageDataType>;
+        closing: Callback1<this, PageDataType>;
+        closed: Callback1<this, PageDataType>;
+        active: Callback1<this, PageDataType>;
+        deactive: Callback1<this, PageDataType>;
         constructor(params: PageParams);
-        on_load(args: any): void;
-        on_showing(): void;
-        on_shown(): void;
-        on_hiding(): void;
-        on_hidden(): void;
-        on_closing(): void;
-        on_closed(): void;
+        private on_load();
+        private on_loadComplete();
+        private on_showing();
+        private on_shown();
+        private on_hiding();
+        private on_hidden();
+        private on_closing();
+        private on_closed();
+        on_active(args: PageDataType): void;
+        on_deactive(): void;
         show(): Promise<any>;
         hide(): Promise<any>;
         close(): Promise<any>;
+        createService<T extends Service>(type?: ServiceConstructor<T>): T;
         readonly element: HTMLElement;
         previous: Page;
-        readonly routeData: RouteData;
         readonly name: string;
-        private loadPageAction();
+        private loadPageAction(pageName);
         reload(): Promise<void>;
     }
-    class PageDisplayerImplement implements PageDisplayer {
-        show(page: Page): Promise<void>;
-        hide(page: Page): Promise<void>;
+}
+interface PageActionConstructor {
+    new (page: chitu.Page): any;
+}
+interface PageConstructor {
+    new (args: chitu.PageParams): chitu.Page;
+}
+declare class PageDisplayerImplement implements chitu.PageDisplayer {
+    show(page: chitu.Page): Promise<void>;
+    hide(page: chitu.Page): Promise<void>;
+}
+interface ServiceError extends Error {
+    method?: string;
+}
+declare function ajax<T>(url: string, options: RequestInit): Promise<T>;
+declare function callAjax<T>(url: string, options: RequestInit, service: chitu.Service, error: chitu.Callback1<chitu.Service, Error>): Promise<T>;
+declare namespace chitu {
+    interface ServiceConstructor<T> {
+        new (): T;
+    }
+    class Service {
+        error: Callback1<Service, Error>;
+        static settings: {
+            ajaxTimeout: number;
+        };
+        ajax(url: string, options?: {
+            data?: Object;
+            headers?: Headers;
+            contentType?: string;
+            method?: string;
+        }): Promise<{}>;
     }
 }
-
 declare namespace chitu {
-    function combinePath(path1: string, path2: string): string;
-    function loadjs(path: any): Promise<any>;
 }
-        declare module "chitu" { 
-            export = chitu; 
-        }
+
+declare module "maishu-chitu" { 
+    export = chitu; 
+}
+
+declare module "chitu" { 
+    export = chitu; 
+}
+

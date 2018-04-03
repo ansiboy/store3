@@ -6,7 +6,7 @@ let { PageComponent, PageHeader, PageFooter, PageView, DataList, ImageBox, Tabs 
 
 export default function (page: Page) {
 
-    let orderId = page.routeData.values.orderId;
+    let orderId = page.data.orderId;
     if (!orderId) throw new Error('orderId cannt be empty.');
 
     let shopping = page.createService(ShoppingService);

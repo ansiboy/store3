@@ -56,7 +56,7 @@ var chitu;
                 }
                 if (!routePath) throw chitu.Errors.canntParseRouteString(routeString);
                 if (search) {
-                    this._parameters = this.pareeUrlQuery(search);
+                    this._parameters = pareeUrlQuery(search);
                 }
                 var path_parts = routePath.split(this.path_spliter_char).map(function (o) {
                     return o.trim();

@@ -7,7 +7,7 @@ let { loadImage, ImageBox, PullDownIndicator, PullUpIndicator, DataList, Panel,
 export default function (page: Page) {
 
     let shop = page.createService(ShoppingService);
-    let categoryId = page.routeData.values.categoryId;
+    let categoryId = page.data.categoryId;
 
     class ProductListView extends React.Component<{ title: string }, {}>{
 

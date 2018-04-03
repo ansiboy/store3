@@ -1,41 +1,37 @@
-import { Page, defaultNavBar, Menu } from 'site';
+import { defaultNavBar, Menu, PageProps } from 'site';
 import { ShoppingService, StationService } from 'services';
-// import { ImageBox } from 'controls/imageBox';
-// import { PageComponent, PageHeader, PageFooter } from 'controls/page';
-// let { PageComponent, PageHeader, PageFooter, PageView, ImageBox } = controls;
 
-export default function (page: Page) {
-    let shop = page.createService(ShoppingService);
+// export default function (page: chitu.Page) {
+//     let shop = page.createService(ShoppingService);
 
-    class ClassPage extends React.Component<{ cateories: ProductCategory[] }, {}>{
-        constructor(props) {
-            super(props);
-            this.state = { cateories: [] };
 
-        }
-        render() {
-            return (
-                <div className="row">
-                    {this.props.cateories.map(item => (
-                        <a key={item.Id} href={`#home_productList?categoryId=${item.Id}`} className="col-xs-3">
-                            <img src={item.ImagePath} />
-                            <span className="mini interception">{item.Name}</span>
-                        </a>
-                    ))}
-                </div>
-            );
-        }
+//     ReactDOM.render(<ClassPage />, page.element);
+
+
+// }
+
+export default class ClassPage extends React.Component<PageProps, { cateories: ProductCategory[] }>{
+    constructor(props) {
+        super(props);
+        this.state = { cateories: [] };
     }
-
-    shop.cateories().then(items => {
-        ReactDOM.render(
+    componentDidMount() {
+        let shop = this.props.createService(ShoppingService);
+        shop.cateories().then(items => {
+            this.state.cateories = items;
+            this.setState(this.state);
+        })
+    }
+    render() {
+        let cateories = this.state.cateories;
+        return (
             <div className="page">
                 <header>
                     <nav className="bg-primary">
                         <a href="#home_search" className="search">
                             <div name="search_box" className="form-control" style={{ borderWidth: 0, borderRadius: 4 }}>
                                 寻找商品、品牌、品类
-                            </div>
+                        </div>
                             <div className="search-icon">
                                 <i className="icon-search"></i>
                             </div>
@@ -43,13 +39,21 @@ export default function (page: Page) {
                     </nav>
                 </header>
                 <footer>
-                    <Menu pageName={page.name} />
+                    <Menu pageName={this.props.name} />
                 </footer>
                 <section className="main">
-                    <ClassPage cateories={items} />
+                    <div className="row">
+                        {cateories.map(item => (
+                            <a key={item.Id} href={`#home_productList?categoryId=${item.Id}`} className="col-xs-3">
+                                <img src={item.ImagePath} />
+                                <span className="mini interception">{item.Name}</span>
+                            </a>
+                        ))}
+                    </div>
                 </section>
-            </div>, page.element);
-    })
+            </div>
 
-
+        );
+    }
 }
+

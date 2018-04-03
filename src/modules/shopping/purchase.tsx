@@ -108,7 +108,7 @@ export default function (page: Page) {
         }
     }
 
-    shopping.order(page.routeData.values.id).then(order => {
+    shopping.order(page.data.id).then(order => {
         ReactDOM.render(<PurchasePage order={order} />, page.element);
     })
 }
