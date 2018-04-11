@@ -1,6 +1,7 @@
 import { Page, defaultNavBar, app } from 'site';
 import { LocationService, ShoppingService, userData } from 'services';
 import { ReceiptEditPageArguments } from 'modules/user/receiptEdit';
+import siteMap from 'siteMap';
 
 // export type AddressSelected = (address: string) => void;
 export interface Argumnets {
@@ -85,7 +86,7 @@ export default function (page: Page, args: Argumnets) {
                     if (!this.locationInput.oninput) {
                         return;
                     }
-                     //==========================================
+                    //==========================================
                     this.state.searchAddresses = (result.vr || []).filter(o => o.type == 0).map(o => o.address);
                     this.setState(this.state);
                 }
@@ -102,7 +103,7 @@ export default function (page: Page, args: Argumnets) {
 
         showReceiptEditPage(receiptId?: string) {
             if (!userData.userToken.value) {
-                return app.redirect("user_login", { return: page.data })
+                return app.redirect(siteMap.nodes.user_login, { return: page.data })
             }
 
             let args: ReceiptEditPageArguments = {
@@ -129,7 +130,7 @@ export default function (page: Page, args: Argumnets) {
                 }
             };
 
-            app.redirect('user_receiptEdit', args);
+            app.redirect(siteMap.nodes.user_receiptEdit, args);
         }
 
         componentDidMount() {

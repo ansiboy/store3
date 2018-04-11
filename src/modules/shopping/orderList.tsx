@@ -9,18 +9,14 @@ import { Tabs } from 'components/tabs';
 
 // export default function (page: Page) {
 
-let orderListView: OrderListView;
-// let shop = page.createService(ShoppingService);
-
-
-
+let orderListPage: OrderListPage;
 interface Props {
     shop: ShoppingService,
     data,
     defaultActiveIndex: number,
 }
 
-export default class OrderListView extends React.Component<Props, { activeIndex: number }>{
+export class OrderListPage extends React.Component<Props, { activeIndex: number }>{
 
     private dataView: HTMLElement;
     private dataList: DataList;
@@ -46,8 +42,8 @@ export default class OrderListView extends React.Component<Props, { activeIndex:
         this.state.activeIndex = index;
         this.setState(this.state);
 
-        orderListView.state.activeIndex = index;
-        orderListView.setState(orderListView.state);
+        orderListPage.state.activeIndex = index;
+        orderListPage.setState(orderListPage.state);
     }
 
     componentDidUpdate() {
@@ -105,7 +101,6 @@ export default class OrderListView extends React.Component<Props, { activeIndex:
     }
     render() {
         let defaultActiveIndex = this.props.defaultActiveIndex;
-        debugger;
         return (
             <div>
                 <header>
@@ -171,8 +166,8 @@ export default class OrderListView extends React.Component<Props, { activeIndex:
     }
 }
 
-// orderListView = ReactDOM.render(<OrderListView ></OrderListView>, page.element)
-export async function props(page: chitu.Page): Promise<Props> {
+export default function (page: chitu.Page) {
+
     let shop = page.createService(ShoppingService);
 
     let type = page.data.type;
@@ -182,11 +177,10 @@ export async function props(page: chitu.Page): Promise<Props> {
     else if (type == 'Send')
         defaultActiveIndex = 2;
 
-    return {
+    let props: Props = {
         shop,
         data: page.data,
         defaultActiveIndex
-    };
+    }
+    orderListPage = ReactDOM.render(<OrderListPage {...props} />, page.element);
 }
-
-// }

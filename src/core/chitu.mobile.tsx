@@ -1,6 +1,10 @@
 namespace chitu.mobile {
     let isCordovaApp = location.protocol === 'file:';
 
+    export type MobileSiteMapNode = {
+        weight?: number
+    } & chitu.SiteMapNode;
+
     export class Page extends chitu.Page {
 
         public displayStatic: boolean = false;
@@ -12,15 +16,14 @@ namespace chitu.mobile {
         constructor(params: chitu.PageParams) {
             super(params);
         }
-
     }
 
 
-    export class Application extends chitu.Application {
-        public pageShown = chitu.Callbacks<Application, { page: chitu.Page }>()
+    export class Application extends chitu.Application<MobileSiteMapNode> {
+        public pageShown = chitu.Callbacks<this, { page: chitu.Page }>()
 
-        constructor(siteMap: chitu.SiteMap<chitu.SiteMapNode>, allowCachePage?: boolean) {
-            super(siteMap, allowCachePage);
+        constructor(siteMap: chitu.SiteMap<MobileSiteMapNode>) {
+            super(siteMap);
 
             this.pageType = Page;
 
@@ -52,13 +55,14 @@ namespace chitu.mobile {
     }
 
     class PageDisplayImplement implements chitu.PageDisplayer {
-        private app: chitu.Application;
+        private app: chitu.Application<MobileSiteMapNode>;
         private windowWidth: number;
         private previousPageStartX: number;
         private animationTime = 400;
         private static hiddingPage: Page;
+        private static maxZIndex = 0;
 
-        constructor(app: chitu.Application) {
+        constructor(app: chitu.Application<MobileSiteMapNode>) {
             this.app = app;
             this.windowWidth = window.innerWidth;
             this.previousPageStartX = 0 - this.windowWidth / 3;
@@ -112,7 +116,7 @@ namespace chitu.mobile {
             })
 
 
-            let end = (event: TouchEvent) => {
+            let end = (event: Event) => {
                 if (!moved)
                     return;
 
@@ -160,6 +164,11 @@ namespace chitu.mobile {
         }
 
 
+        private pageNodeLevel(page: chitu.Page): number {
+            let node = this.app.pageNodes[page.name];
+            return node != null ? (node.weight || 0) : 0;
+        }
+
         show(page: Page): Promise<any> {
             if (!(page as any).gestured) {
                 (page as any).gestured = true;
@@ -167,16 +176,16 @@ namespace chitu.mobile {
                     this.enableGesture(page);
             }
 
-            let maxZIndex = 1;
-            let pageElements = document.getElementsByClassName(Page.className);
-            for (let i = 0; i < pageElements.length; i++) {
-                let zIndex = new Number((pageElements.item(i) as HTMLElement).style.zIndex || '0').valueOf();
-                if (zIndex > maxZIndex) {
-                    maxZIndex = zIndex;
-                }
-            }
+            this.app["maxZIndex"] = (this.app["maxZIndex"] || 0) + 1;
+            // let pageElements = document.getElementsByClassName(Page.className);
+            // for (let i = 0; i < pageElements.length; i++) {
+            //     let zIndex = new Number((pageElements.item(i) as HTMLElement).style.zIndex || '0').valueOf();
+            //     if (zIndex > maxZIndex) {
+            //         maxZIndex = zIndex;
+            //     }
+            // }
 
-            page.element.style.zIndex = `${maxZIndex + 1}`;
+            page.element.style.zIndex = `${this.app["maxZIndex"]}`;
             page.element.style.display = 'block';
             if (page.displayStatic) {
                 if (page.previous) {
@@ -185,16 +194,32 @@ namespace chitu.mobile {
                 return Promise.resolve();
             }
 
-            if (PageDisplayImplement.hiddingPage != null) {
-                page.element.style.transform = `translate(${this.previousPageStartX}px, 0px)`;
+
+            // if (PageDisplayImplement.hiddingPage != null) {
+            //     page.element.style.transform = `translate(${this.previousPageStartX}px, 0px)`;
+            // }
+            // else {
+
+            let direction: 'left' | 'right' = 'left'; // 页面移动方向
+            if (this.app.currentPage != null) {
+                let newLevel = this.pageNodeLevel(page);
+                let currentLevel = this.pageNodeLevel(this.app.currentPage);
+                direction = newLevel > currentLevel ? 'left' : 'right';
             }
-            else {
+
+            let currentPage = this.app.currentPage;
+            if (direction == 'left') {
                 page.element.style.transform = `translate(100%,0px)`;
-                if (page.previous) {
-                    page.previous.element.style.transform = `translate(0px,0px)`;
-                    page.previous.element.style.transition = `${this.animationTime / 1000}s`;
+                if (currentPage) {
+                    currentPage.element.style.transform = `translate(0px,0px)`;
+                    currentPage.element.style.transition = `${this.animationTime / 1000}s`;
                 }
             }
+            else {
+                page.element.style.transform = `translate(${this.previousPageStartX}px, 0px)`;
+            }
+
+            // }
 
             return new Promise(reslove => {
                 let delay = 100;
@@ -202,11 +227,13 @@ namespace chitu.mobile {
                     page.element.style.transform = `translate(0px,0px)`;
                     page.element.style.transition = `${this.animationTime / 1000}s`;
 
-                    if (page.previous) {
-                        page.previous.element.style.transform = `translate(${this.previousPageStartX}px,0px)`;
+                    if (currentPage) {
+                        currentPage.element.style.transform = direction == 'left' ?
+                            `translate(${this.previousPageStartX}px,0px)` :
+                            `translate(100%,0px)`;
                         //==================================================================
                         // 由于距离短，时间可以延迟
-                        page.previous.element.style.transition = `${(this.animationTime + 200) / 1000}s`;
+                        currentPage.element.style.transition = `${(this.animationTime + 200) / 1000}s`;
                     }
 
                 }, delay);
@@ -215,10 +242,10 @@ namespace chitu.mobile {
             }).then(() => {
                 page.element.style.removeProperty('transform');
                 page.element.style.removeProperty('transition');
-                if (page.previous) {
-                    page.previous.element.style.display = 'none';
-                    page.previous.element.style.removeProperty('transform');
-                    page.previous.element.style.removeProperty('transition');
+                if (currentPage) {
+                    // currentPage.element.style.display = 'none';
+                    currentPage.element.style.removeProperty('transform');
+                    currentPage.element.style.removeProperty('transition');
                 }
             })
         }
@@ -231,7 +258,7 @@ namespace chitu.mobile {
                 // 通过系统浏览器滑屏返回，是不需要有返回效果的。
                 let now = Date.now();
                 if (!isCordovaApp && isiOS && now - touch_move_time < 500 || page.displayStatic) {
-                    page.element.style.display = 'none';
+                    // page.element.style.display = 'none';
                     if (page.previous) {
                         page.previous.element.style.display = 'block';
                         page.previous.element.style.transition = `0s`;
@@ -276,10 +303,10 @@ namespace chitu.mobile {
     }
 
     class LowMachinePageDisplayImplement implements chitu.PageDisplayer {
-        private app: chitu.Application;
+        private app: chitu.Application<any>;
         private windowWidth: number;
 
-        constructor(app: chitu.Application) {
+        constructor(app: chitu.Application<any>) {
             this.app = app;
             this.windowWidth = window.innerWidth;
         }
@@ -329,7 +356,7 @@ namespace chitu.mobile {
             })
 
 
-            let end = (event: TouchEvent) => {
+            let end = (event: Event) => {
                 if (!moved)
                     return;
 

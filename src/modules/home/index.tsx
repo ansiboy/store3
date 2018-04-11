@@ -7,15 +7,10 @@ import wx = require('jweixin');
 import { Argumnets as LocationPageArguments } from 'modules/home/location'
 import { Props } from 'react';
 
-// export default async function (page: Page) {
-
-
 interface IndexPageStatus {
     shoppingCartItems: ShoppingCartItem[],
     address: string,
     activeCategory: string,
-    // products: Product[],
-    // categories: string[]
 }
 
 interface IndexPageProps {
@@ -23,9 +18,10 @@ interface IndexPageProps {
     categories: string[],
     station: StationService,
     shop: ShoppingService,
+    element: HTMLElement,
 }
 
-export default class IndexPage extends React.Component<IndexPageProps & PageProps, IndexPageStatus>{
+export class IndexPage extends React.Component<IndexPageProps, IndexPageStatus>{
     private shop: ShoppingService;
     private station: StationService;
     private coordinate: { lon: number; lat: number; };
@@ -42,7 +38,7 @@ export default class IndexPage extends React.Component<IndexPageProps & PageProp
         super(props);
 
         this.station = this.props.station;
-        this.shop = this.props.createService(ShoppingService);
+        this.shop = this.props.shop;
 
         this.state = {
             shoppingCartItems: shoppingCart.items.value,
@@ -92,7 +88,7 @@ export default class IndexPage extends React.Component<IndexPageProps & PageProp
             currentAddress: this.state.address,
         };
 
-        let locationPage = app.redirect('home_location', args);
+        let locationPage = app.redirect(siteMap.nodes.home_location, args);
     }
 
     scrollTo(categoryName: string) {
@@ -111,11 +107,6 @@ export default class IndexPage extends React.Component<IndexPageProps & PageProp
         // page.element.scrollTo(0, y);
     }
 
-    private async loadData(pageIndex): Promise<Product[]> {
-        let products = await this.station.proudcts(pageIndex);
-        return products as Product[];
-    }
-
     addToShoppingCart(product: Product, count: number) {
         count = count + 1;
         shoppingCart.setItemCount(product, count);
@@ -131,7 +122,8 @@ export default class IndexPage extends React.Component<IndexPageProps & PageProp
 
     redirect(o: Product) {
         // location.hash = `#home_product?id=${o.Id}`;
-        app.redirect(`home_product`, { id: o.Id });
+        let target = siteMap.nodes.home_product;
+        app.redirect(target, { id: o.Id });
         return;
     }
 
@@ -145,7 +137,8 @@ export default class IndexPage extends React.Component<IndexPageProps & PageProp
 
         let result = this.shop.createOrder(productIds, quantities)
             .then((order) => {
-                app.redirect(`shopping_orderProducts`, { id: order.Id })
+                let target = siteMap.nodes.shopping_shoppingCartNoMenu;
+                app.redirect(target, { id: order.Id })
             })
 
         return result;
@@ -274,7 +267,7 @@ export default class IndexPage extends React.Component<IndexPageProps & PageProp
                 <footer ref={(e: HTMLElement) => this.footer = e || this.footer}>
                     <div className="settlement">
                         <div className="pull-left">
-                            <i className="icon-shopping-cart" onClick={() => app.redirect('shopping_shoppingCartNoMenu')}
+                            <i className="icon-shopping-cart" onClick={() => app.redirect(siteMap.nodes.shopping_shoppingCartNoMenu)}
                                 ref={(e: HTMLElement) => this.shoppingCartElement = e || this.shoppingCartElement} />
                             {count ? <span className="badge bg-primary">{count}</span> : null}
                         </div>
@@ -295,24 +288,25 @@ export default class IndexPage extends React.Component<IndexPageProps & PageProp
     }
 }
 
-export async function props(page: chitu.Page): Promise<IndexPageProps> {
+export default async function (page: chitu.Page) {
+
     let station = page.createService(StationService);
     let shop = page.createService(ShoppingService);
     let products = await station.proudcts();
     let categories = getCategories(products);
-    return {
+    let props: IndexPageProps = {
         station,
         shop,
         products,
         categories,
-    };
+        element: page.element,
+    }
+    ReactDOM.render(<IndexPage {...props} />, page.element);
+
 }
 
+
 let shoppingCartItems: ShoppingCartItem[];
-
-
-// ReactDOM.render(<IndexPage products={products} categories={categires} />, page.element);
-// }
 
 function getCategories(products: Product[]) {
     let categires = [];

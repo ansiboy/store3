@@ -1,6 +1,7 @@
 import { Page, defaultNavBar, app } from 'site';
 import { ShoppingService, shoppingCart, AccountService, userData, imageUrl } from 'services';
 import { SetAddress, ReceiptListRouteValues } from 'modules/user/receiptList';
+import siteMap from 'siteMap';
 
 // export default function (page: Page) {
 
@@ -17,7 +18,7 @@ interface Props {
     shop: ShoppingService,
 }
 
-export default class OrderPage extends React.Component<Props, OrderPageState>{
+export class OrderPage extends React.Component<Props, OrderPageState>{
     private setAddress: SetAddress;
     constructor(props) {
         super(props);
@@ -51,12 +52,12 @@ export default class OrderPage extends React.Component<Props, OrderPageState>{
         return this.props.shop.confirmOrder(orderId, remark, invoice).then(() => {
             let productIds = order.OrderDetails.map(o => o.ProductId);
             shoppingCart.removeItems(productIds);
-            app.redirect(`shopping_purchase?id=${order.Id}`);
+            app.redirect(siteMap.nodes.shopping_purchase, { id: order.Id });//shopping_purchase
         });
     }
     private showReceiptList() {
         let routeValue: ReceiptListRouteValues = { callback: this.setAddress, orderId: this.state.order.Id };
-        app.redirect('user_receiptList', routeValue);
+        app.redirect(siteMap.nodes.user_receiptList, routeValue);//user_receiptList
     }
     render() {
         let order = this.state.order;
@@ -145,7 +146,7 @@ export default class OrderPage extends React.Component<Props, OrderPageState>{
                         : null}
 
                     <div className="container"
-                        onClick={() => app.showPage('shopping_invoice', {
+                        onClick={() => app.showPage(siteMap.nodes.shopping_invoice, {
                             callback: (invoice: string) => {
                                 this.state.order.Invoice = invoice;
                                 this.setState(this.state);
@@ -210,26 +211,16 @@ export default class OrderPage extends React.Component<Props, OrderPageState>{
     }
 }
 
-export async function props(page: Page): Promise<Props> {
+export default async function (page: Page) {
     let id = page.data.id;
     let shop = page.createService(ShoppingService);
     let account = page.createService(AccountService);
     let order = await shop.order(id);
     let balance = 0;
-    return {
+    let props = {
         order,
         balance,
         shop,
     };
-
-
+    ReactDOM.render(<OrderPage {...props} />, page.element);
 }
-
-// let id = page.data.id;
-// Promise.all([shop.order(id)]).then(data => {
-//     let order = data[0];
-//     // let balance = data[1];
-//     ReactDOM.render(<OrderPage order={order} balance={userData.balance.value} />, page.element)
-// })
-
-// }

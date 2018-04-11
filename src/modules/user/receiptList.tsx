@@ -1,6 +1,8 @@
 import { Page, defaultNavBar, app } from 'site';
 import { ShoppingService } from 'services';
 import { ReceiptEditPageArguments } from 'modules/user/receiptEdit';
+import siteMap from 'siteMap';
+
 export type SetAddress = (address: string, order: Order) => void;
 export interface ReceiptListRouteValues {
     callback: SetAddress,
@@ -18,7 +20,7 @@ interface Props {
     routeValue: any,
 }
 
-export default class ReceiptListPage extends React.Component<Props, { items?: ReceiptInfo[] }>{
+export class ReceiptListPage extends React.Component<Props, { items?: ReceiptInfo[] }>{
     constructor(props) {
         super(props);
         this.state = { items: this.props.items || [] };
@@ -44,7 +46,7 @@ export default class ReceiptListPage extends React.Component<Props, { items?: Re
                 app.back();
             }
         } as ReceiptEditPageArguments;
-        app.redirect('user_receiptEdit', routeValues);
+        app.redirect(siteMap.nodes.user_receiptEdit, routeValues);
     }
     private editReceipt(receipt: ReceiptInfo) {
         let routeValues = {
@@ -62,7 +64,7 @@ export default class ReceiptListPage extends React.Component<Props, { items?: Re
                 app.back();
             }
         } as ReceiptEditPageArguments;
-        app.redirect('user_receiptEdit', routeValues);
+        app.redirect(siteMap.nodes.user_receiptEdit, routeValues);
     }
     async setDefaultReceipt(receipt: ReceiptInfo) {
         await this.props.shop.setDefaultReceiptInfo(receipt.Id);
@@ -168,18 +170,14 @@ export default class ReceiptListPage extends React.Component<Props, { items?: Re
     }
 }
 
-export async function props(page: chitu.Page): Promise<Props> {
+export default async function (page: chitu.Page) {
     let shop = page.createService(ShoppingService);
     let items = await shop.receiptInfos();
-    return {
+    let props: Props = {
         shop,
         items,
         routeValue: page.data
     };
+
+    ReactDOM.render(<ReceiptListPage {...props} />, page.element);
 }
-
-// shop.receiptInfos().then(items => {
-//     ReactDOM.render(<ReceiptListPage items={items} />, page.element);
-// })
-
-// }

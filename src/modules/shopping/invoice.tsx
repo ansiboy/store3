@@ -42,7 +42,7 @@ export default function (page: Page) {
                                         onChange={() => {
                                             this.state.type = '个人';
                                             this.setState(this.state);
-                                        } } /> 个人
+                                        }} /> 个人
                                 </label>
                             </div>
                             <hr />
@@ -52,7 +52,7 @@ export default function (page: Page) {
                                         onChange={() => {
                                             this.state.type = '公司';
                                             this.setState(this.state);
-                                        } } /> 公司
+                                        }} /> 公司
                                 </label>
                             </div>
                             <hr />
@@ -62,7 +62,7 @@ export default function (page: Page) {
                                     onChange={(e) => {
                                         this.state.title = (e.target as HTMLInputElement).value;
                                         this.setState(this.state);
-                                    } } />
+                                    }} />
                             </div>
                         </form>
                     </PageView>

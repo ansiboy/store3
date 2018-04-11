@@ -2,6 +2,7 @@ import { ShoppingService, shoppingCart, userData, ValueStore, imageUrl } from 's
 import { config, app, PageProps } from 'site';
 import * as ui from 'ui';
 import { AddToShoppingCart } from 'components/addToShoppingCart'
+import siteMap from 'siteMap';
 
 let productStore = new ValueStore<Product>();
 
@@ -21,11 +22,13 @@ interface ProductPageState {
 // page.element.appendChild(panelElement);
 
 interface Props {
-    product: Product
+    product: Product,
+    active: chitu.Callback1<chitu.Page, chitu.PageData>,
+    createService: <T extends chitu.Service>(type: chitu.ServiceConstructor<T>) => T,
 }
 
 
-export default class ProductPage extends React.Component<Props & PageProps, ProductPageState>{
+export class ProductPage extends React.Component<Props, ProductPageState>{
 
     private shop: ShoppingService;
     private header: controls.PageHeader;
@@ -74,7 +77,8 @@ export default class ProductPage extends React.Component<Props & PageProps, Prod
 
         let result = this.shop.createOrder(productIds, quantities)
             .then((order) => {
-                app.redirect(`shopping_orderProducts`, { id: order.Id })
+                let target = siteMap.nodes.shopping_orderProducts;
+                app.redirect(target, { id: order.Id })
             })
 
         return result;
@@ -118,6 +122,10 @@ export default class ProductPage extends React.Component<Props & PageProps, Prod
                 productNameContainerOffsetTop = null;
             }
         };
+
+        // this.props.active.add((sender, args) => {
+        //     debugger;
+        // })
 
     }
 
@@ -190,13 +198,19 @@ export default class ProductPage extends React.Component<Props & PageProps, Prod
     }
 }
 
-export async function props(page: chitu.Page): Promise<Props> {
+export default async function (page: chitu.Page) {
     let shop = page.createService(ShoppingService);
     let product = await shop.product(page.data.id);
-    return {
+    page.active
+    let props = {
         shop,
-        product
+        product,
+        active: page.active,
+        createService: page.createService,
     } as Props;
+
+    ReactDOM.render(<ProductPage {...props} />, page.element);
+
 }
 
 

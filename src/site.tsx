@@ -5,6 +5,7 @@ import * as ui from 'ui';
 import { SiteMap, SiteMapNode } from 'chitu';
 export { app, Page, searchNavBar } from 'application';
 import { app } from 'application';
+import { siteMap } from './site';
 export { PageProps, default as siteMap } from 'siteMap';
 
 /** 监听 shoppingCart 错误  */
@@ -52,19 +53,19 @@ export class Menu extends React.Component<{ pageName: string }, { itemsCount: nu
         return (
             <ul ref="menu" className="menu" style={{ marginBottom: '0px' }}>
                 <li>
-                    <a name="home.index" onClick={() => app.redirect('home_index')}>
+                    <a name="home.index" onClick={() => app.redirect(siteMap.nodes.home_index)}>
                         <i className="icon-home"></i>
                         <span>首页</span>
                     </a>
                 </li>
                 <li>
-                    <a name="home.class" onClick={() => app.redirect('home_class')}>
+                    <a name="home.class" onClick={() => app.redirect(siteMap.nodes.home_class)}>
                         <i className="icon-th-large"></i>
                         <span>分类</span>
                     </a>
                 </li>
                 <li>
-                    <a name="shopping.shoppingCart" onClick={() => app.redirect('shopping_shoppingCart')}>
+                    <a name="shopping.shoppingCart" onClick={() => app.redirect(siteMap.nodes.shopping_shoppingCartNoMenu)}>
                         <i className="icon-shopping-cart"></i>
                         <sub name="products-count" style={{ display: this.state.itemsCount <= 0 ? 'none' : 'block' }} className="sub">
                             {this.state.itemsCount}
@@ -74,13 +75,7 @@ export class Menu extends React.Component<{ pageName: string }, { itemsCount: nu
 
                 </li>
                 <li>
-                    <a name="home.newsList" onClick={() => app.redirect('home_newsList')}>
-                        <i className="icon-rss"></i>
-                        <span>微资讯</span>
-                    </a>
-                </li>
-                <li>
-                    <a name="user.index" onClick={() => app.redirect('user_index')}>
+                    <a name="user.index" onClick={() => app.redirect(siteMap.nodes.user_index)}>
                         <i className="icon-user"></i>
                         <span>我</span>
                     </a>

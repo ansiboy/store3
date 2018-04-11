@@ -3,11 +3,13 @@ import { ShoppingService } from 'services';
 import FormValidator = require('core/formValidator');
 import { RegionsPageRouteValues } from 'modules/user/regions';
 import * as ui from 'ui';
+import siteMap from 'siteMap';
 
 export interface ReceiptEditPageArguments {
     id?: string,
     onSaved: (receipt: ReceiptInfo) => void
 }
+
 export default async function (page: Page) {
 
     let shop = page.createService(ShoppingService);
@@ -75,7 +77,7 @@ export default async function (page: Page) {
                     this.setState(this.state);
                 }
             };
-            app.showPage('user_regions', routeValues);
+            app.showPage(siteMap.nodes.user_regions, routeValues);
         }
         render() {
             let ReceiptInfo = this.state.receiptInfo;

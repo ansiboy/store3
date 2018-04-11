@@ -14,7 +14,7 @@ interface Props {
 let defaultIndex = 0;
 type Status = 'available' | 'used' | 'expired';
 let statuses: Status[] = ['available', 'used', 'expired'];
-export default class CouponPage extends React.Component<Props, { status: Status }>{
+export class CouponPage extends React.Component<Props, { status: Status }>{
     private dataView: HTMLElement;
     private dataList: DataList;
 
@@ -85,12 +85,9 @@ export default class CouponPage extends React.Component<Props, { status: Status 
     }
 }
 
-export async function props(page: chitu.Page): Promise<Props> {
+export default function (page: chitu.Page) {
     let shopping = page.createService(ShoppingService);
-    return {
-        shopping
-    };
+    let props: Props = { shopping };
+    ReactDOM.render(<CouponPage {...props} />, page.element);
 }
 
-    // ReactDOM.render(<CouponPage />, page.element);
-// }

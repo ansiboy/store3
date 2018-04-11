@@ -1,4 +1,4 @@
-import { Page, Menu, app } from 'site';
+import { Page, Menu, app, siteMap } from 'site';
 import { MemberService, userData } from 'services';
 
 
@@ -22,7 +22,7 @@ interface Props {
     member: MemberService
 }
 
-export default class UserIndexPage extends React.Component<Props, PageState>{
+export class UserIndexPage extends React.Component<Props, PageState>{
     private notPaidCountSubscribe: (value: number) => void;
     private sendCountSubscribe: (value: number) => void;
     private toEvaluateCountSubscribe: (value: number) => void;
@@ -75,7 +75,7 @@ export default class UserIndexPage extends React.Component<Props, PageState>{
 
     private logout() {
         this.props.member.logout();
-        app.redirect('home_index');
+        app.redirect(siteMap.nodes.home_index);
     }
 
     componentDidMount() {
@@ -188,12 +188,21 @@ export default class UserIndexPage extends React.Component<Props, PageState>{
     }
 }
 
-export async function props(page: chitu.Page): Promise<Props> {
+export default function (page: chitu.Page) {
     let member = page.createService(MemberService);
-    return {
+    let props: Props = {
         member
     };
+    ReactDOM.render(<UserIndexPage {...props} />, page.element);
 }
+
+
+// export async function props(page: chitu.Page): Promise<Props> {
+//     let member = page.createService(MemberService);
+//     return {
+//         member
+//     };
+// }
 
 // ReactDOM.render(<UserIndexPage />, page.element);
 // }

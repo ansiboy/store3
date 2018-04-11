@@ -3,6 +3,7 @@ import { ShoppingService, MemberService, isWeixin, createWeixinClient, userData 
 import { RegionsPageRouteValues } from 'modules/user/regions';
 
 import * as ui from 'ui';
+import siteMap from 'siteMap';
 
 // export default async function (page: Page) {
 // let member = page.createService(MemberService);
@@ -85,7 +86,7 @@ interface Props {
     member: MemberService,
 }
 
-export default class UserInfoPage extends React.Component<Props, { userInfo: UserInfo }>{
+export class UserInfoPage extends React.Component<Props, { userInfo: UserInfo }>{
     private genderSelector: ValueSelector;
     private userImage: HTMLImageElement;
     private imageBox: ImageBox;
@@ -169,7 +170,7 @@ export default class UserInfoPage extends React.Component<Props, { userInfo: Use
                 this.setState(this.state);
             }
         };
-        app.showPage('user_regions', routeValues);
+        app.showPage(siteMap.nodes.user_regions, routeValues);//'user_regions'
     }
     componentDidMount() {
         this.genderSelector.valueChanged = (item) => {
@@ -266,15 +267,15 @@ export default class UserInfoPage extends React.Component<Props, { userInfo: Use
     }
 }
 
-export async function props(page: chitu.Page): Promise<Props> {
+export default function (page: chitu.Page) {
     let member = page.createService(MemberService);
-    return {
+    let props: Props = {
         member,
     };
+
+    ReactDOM.render(<UserInfoPage {...props} />, page.element);
 }
 
-// ReactDOM.render(<UserInfoPage />, page.element);
-// }
 
 interface ImageBoxProps extends React.Props<ImageBox> {
     imageSource: string,

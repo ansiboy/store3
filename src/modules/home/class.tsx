@@ -10,7 +10,7 @@ import { ShoppingService, StationService } from 'services';
 
 // }
 
-export default class ClassPage extends React.Component<PageProps, { cateories: ProductCategory[] }>{
+export class ClassPage extends React.Component<PageProps, { cateories: ProductCategory[] }>{
     constructor(props) {
         super(props);
         this.state = { cateories: [] };
@@ -57,3 +57,12 @@ export default class ClassPage extends React.Component<PageProps, { cateories: P
     }
 }
 
+export default function (page: chitu.Page) {
+    let props: PageProps = {
+        createService: page.createService,
+        element: page.element,
+        name: page.name,
+    }
+
+    ReactDOM.render(<ClassPage {...props} />, page.element);
+}

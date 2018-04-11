@@ -13,7 +13,7 @@ export class Application extends BaseApplication {
         this.error.add((sender, error, page) => this.onError(sender, error, page));
     }
 
-    onPageCreated(sender: chitu.Application, page: chitu.Page) {
+    onPageCreated(sender: this, page: chitu.Page) {
         let pageName = page.name;
         if (pageName == 'index') {
             pageName = 'home_index';
@@ -29,7 +29,7 @@ export class Application extends BaseApplication {
         // }
     }
 
-    onError(sender: chitu.Application, error: Error, page: chitu.Page) {
+    onError(sender: this, error: Error, page: chitu.Page) {
         // var currentPage = app.currentPage;
         switch (error.name) {
             case '600':     //600 为未知异常
@@ -51,12 +51,15 @@ export class Application extends BaseApplication {
                 // 2. 如果是点击按钮的时候出现未登录，就调转登录页面   
                 let err = error as ServiceError;
                 if ((err.method || 'get') == 'get') {
-                    app.showPage('user_login', { return: page.name });
+                    let target = siteMap.nodes.user_login;
+                    app.showPage(target, { return: page.name });
+
                     page.close()
                     // setTimeout(() => currentPage.close(), 100);
                 }
                 else {
-                    app.redirect('user_login', { return: page.name });
+                    let target = siteMap.nodes.user_login;
+                    app.redirect(target, { return: page.name });
                 }
                 //========================================================
                 break;

@@ -1,44 +1,91 @@
 import { SiteMap, SiteMapNode, Page } from "chitu";
 
-let siteMap = {
-    index: {
-        action: createAction('modules/home/index'),
-        children: {
-            // 'home_index': 'modules/home/index',
-            'home_class': {
-                action: createAction('modules/home/class'),
-            },
-            'shopping_shoppingCart': createAction('modules/shopping/shoppingCart'),
-            'shopping_shoppingCartNoMenu': createAction('modules/shopping/shoppingCartNoMenu'),
-            /** 用户中心 */
-            'user_index': {
-                action: createAction('modules/user/index'),
-                children: {
-                    user_receiptList: createAction('modules/user/receiptList'),
-                    shopping_orderList: createAction('modules/shopping/orderList'),
-                    user_scoreList: createAction('modules/user/scoreList'),
-                    user_userInfo: createAction('modules/user/userInfo'),
-                    user_coupon: createAction('modules/user/coupon'),
-                    user_accountSecurity_index: {
-                        action: createAction('modules/user/accountSecurity/index'),
-                        children: {
-                            user_accountSecurity_loginPassword: createAction('modules/user/accountSecurity/loginPassword'),
-                            user_accountSecurity_mobileBinding: createAction('modules/user/accountSecurity/mobileBinding'),
-                            AccountSecurity_Setting_PaymentPassword: createAction('modules/accountSecurity/paymentPassword')
-                        }
-                    },
-                }
-            },
-            'home_product': {
-                action: createAction('modules/home/product'),
-                children: {
-                    'shopping_shoppingCartNoMenu': createAction('modules/shopping/shoppingCartNoMenu')
-                }
-            },
-            'user_login': createAction('modules/user/login'),
-            shopping_orderProducts: createAction('modules/shopping/orderProducts'),
-        }
+const UserIndexWeight = 20;
+const UserReceiptListWeight = UserIndexWeight + 10;
+const UserReceiptEditWeight = UserReceiptListWeight + 10;
+
+let nodes = {
+    home_index: {
+        action: 'modules/home/index',
+        cache: true,
+    },
+    home_class: {
+        action: 'modules/home/class',
+        cache: true,
+        weight: 1,
+    },
+    home_location: {
+        action: 'modules/home/location',
+        cache: true,
+    },
+    home_product: {
+        action: 'modules/home/product',
+        weight: 10,
+    },
+    shopping_shoppingCartNoMenu: {
+        action: 'modules/shopping/shoppingCartNoMenu',
+        weight: 20,
+    },
+    shopping_orderProducts: {
+        action: 'modules/shopping/orderProducts'
+    },
+    shopping_orderList: {
+        action: 'modules/shopping/orderList',
+        weight: UserIndexWeight + 10,
+    },
+    shopping_purchase: {
+        action: 'modules/shopping/purchase',
+    },
+    shopping_invoice: {
+        action: 'modules/shopping/invoice',
+    },
+    user_index: {
+        action: 'modules/user/index',
+        weight: UserIndexWeight,
+    },
+    user_regions: {
+        action: 'modules/user/regions'
+    },
+    user_receiptList: {
+        action: 'modules/user/receiptList',
+        weight: UserReceiptListWeight,
+    },
+    user_receiptEdit: {
+        action: 'modules/user/receiptEdit',
+        weight: UserReceiptEditWeight,
+    },
+    user_login: {
+        action: 'modules/user/login',
+        cache: true,
+    },
+    user_scoreList: {
+        action: 'modules/user/scoreList',
+    },
+    user_userInfo: {
+        action: 'modules/user/userInfo',
+    },
+    user_coupon: {
+        action: 'modules/user/coupon',
+    },
+
+    user_accountSecurity_index: {
+        action: 'modules/user/accountSecurity/index',
+    },
+    user_accountSecurity_loginPassword: {
+        action: 'modules/user/accountSecurity/loginPassword'
+    },
+    user_accountSecurity_mobileBinding: {
+        action: 'modules/user/accountSecurity/mobileBinding',
+    },
+    AccountSecurity_Setting_PaymentPassword: {
+        action: 'modules/accountSecurity/paymentPassword'
     }
+}
+
+nodes['index'] = nodes.home_index;
+
+let siteMap = {
+    nodes
 };
 
 export interface PageProps {
@@ -70,4 +117,4 @@ function createAction(path: string): (page: Page) => void {
     }
 }
 
-export default siteMap as SiteMap<SiteMapNode>;
+export default siteMap;
