@@ -14,15 +14,15 @@ declare namespace chitu {
         };
     }
     class Application<T extends SiteMapNode> {
-        static skipStateName: string;
+        private static skipStateName;
         pageCreated: Callback1<this, Page>;
         protected pageType: PageConstructor;
         protected pageDisplayType: PageDisplayConstructor;
         private _runned;
         private cachePages;
         private allNodes;
-        private _currentPage;
-        error: Callback2<this, AppError, Page>;
+        private page_stack;
+        error: Callback2<this, Error, Page>;
         constructor(siteMap: SiteMap<T>);
         protected parseUrl(url: string): {
             pageName: string;
@@ -43,9 +43,9 @@ declare namespace chitu {
         private pushPage(page);
         private findSiteMapNode(pageName);
         setLocationHash(url: string): void;
+        closeCurrentPage(): void;
         redirect(node: SiteMapNode, args?: any): Page;
         back(): void;
-        throwError(err: Error, page?: Page): void;
         loadjs(path: any): Promise<any>;
         readonly pageNodes: {
             [key: string]: T;
@@ -122,15 +122,14 @@ declare namespace chitu {
         new (app: Application<any>): PageDisplayer;
     }
     interface PageDisplayer {
-        show(page: Page): Promise<any>;
-        hide(page: Page): Promise<any>;
+        show(targetPage: Page, currentPage: chitu.Page): Promise<any>;
+        hide(targetPage: Page, currentPage: chitu.Page): Promise<any>;
     }
     interface PageParams {
         app: Application<any>;
         action: ActionType;
         element: HTMLElement;
         displayer: PageDisplayer;
-        previous?: Page;
         name: string;
         data: PageData;
     }
@@ -138,7 +137,6 @@ declare namespace chitu {
         private animationTime;
         private num;
         private _element;
-        private _previous;
         private _app;
         private _displayer;
         private _action;
@@ -153,8 +151,6 @@ declare namespace chitu {
         hidden: Callback1<this, PageData>;
         closing: Callback1<this, PageData>;
         closed: Callback1<this, PageData>;
-        active: Callback1<this, PageData>;
-        deactive: Callback1<this, PageData>;
         constructor(params: PageParams);
         private on_load();
         private on_loadComplete();
@@ -164,14 +160,11 @@ declare namespace chitu {
         private on_hidden();
         private on_closing();
         private on_closed();
-        on_active(args: PageData): void;
-        on_deactive(): void;
         show(): Promise<any>;
-        hide(): Promise<any>;
+        hide(currentPage: chitu.Page): Promise<any>;
         close(): Promise<any>;
         createService<T extends Service>(type?: ServiceConstructor<T>): T;
         readonly element: HTMLElement;
-        previous: Page;
         readonly name: string;
         private loadPageAction();
         reload(): Promise<void>;
@@ -184,8 +177,8 @@ interface PageConstructor {
     new (args: chitu.PageParams): chitu.Page;
 }
 declare class PageDisplayerImplement implements chitu.PageDisplayer {
-    show(page: chitu.Page): Promise<void>;
-    hide(page: chitu.Page): Promise<void>;
+    show(page: chitu.Page, previous: chitu.Page): Promise<void>;
+    hide(page: chitu.Page, previous: chitu.Page): Promise<void>;
 }
 interface ServiceError extends Error {
     method?: string;

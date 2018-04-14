@@ -68,7 +68,7 @@ namespace chitu.mobile {
             this.previousPageStartX = 0 - this.windowWidth / 3;
         }
 
-        private enableGesture(page: Page) {
+        private enableGesture(page: Page, previous: Page) {
             let startY, currentY;
             let startX, currentX;
             let moved = false;
@@ -102,10 +102,10 @@ namespace chitu.mobile {
                     page.element.style.transform = `translate(${deltaX}px, 0px)`;
                     page.element.style.transition = '0s';
 
-                    if (page.previous != null) {
-                        page.previous.element.style.transform = `translate(${previousPageStartX + deltaX / 3}px, 0px)`;
-                        page.previous.element.style.transition = '0s';
-                        page.previous.element.style.display = 'block';
+                    if (previous != null) {
+                        previous.element.style.transform = `translate(${previousPageStartX + deltaX / 3}px, 0px)`;
+                        previous.element.style.transition = '0s';
+                        previous.element.style.display = 'block';
                     }
 
                     disableNativeScroll(page.element);
@@ -129,13 +129,13 @@ namespace chitu.mobile {
                     page.element.style.transform = `translate(0px, 0px)`;
                     page.element.style.transition = '0.4s';
 
-                    if (page.previous) {
-                        page.previous.element.style.transform = `translate(${previousPageStartX}px,0px)`;
-                        page.previous.element.style.transition = `0.4s`;
+                    if (previous) {
+                        previous.element.style.transform = `translate(${previousPageStartX}px,0px)`;
+                        previous.element.style.transition = `0.4s`;
                         window.setTimeout(function () {
-                            page.previous.element.style.display = 'none';
-                            page.previous.element.style.removeProperty('transform');
-                            page.previous.element.style.removeProperty('transition');
+                            previous.element.style.display = 'none';
+                            previous.element.style.removeProperty('transform');
+                            previous.element.style.removeProperty('transition');
                             page.element.style.removeProperty('transform');
                             page.element.style.removeProperty('transition');
 
@@ -169,11 +169,11 @@ namespace chitu.mobile {
             return node != null ? (node.weight || 0) : 0;
         }
 
-        show(page: Page): Promise<any> {
+        show(page: Page, previous: Page): Promise<any> {
             if (!(page as any).gestured) {
                 (page as any).gestured = true;
                 if (page.allowSwipeBackGestrue)
-                    this.enableGesture(page);
+                    this.enableGesture(page, previous);
             }
 
             this.app["maxZIndex"] = (this.app["maxZIndex"] || 0) + 1;
@@ -188,8 +188,8 @@ namespace chitu.mobile {
             page.element.style.zIndex = `${this.app["maxZIndex"]}`;
             page.element.style.display = 'block';
             if (page.displayStatic) {
-                if (page.previous) {
-                    page.previous.element.style.display = 'none';
+                if (previous) {
+                    previous.element.style.display = 'none';
                 }
                 return Promise.resolve();
             }
@@ -250,7 +250,7 @@ namespace chitu.mobile {
             })
         }
 
-        hide(page: Page) {
+        hide(page: Page, previous: Page) {
             return new Promise<any>(reslove => {
                 PageDisplayImplement.hiddingPage = page;
                 //============================================
@@ -259,10 +259,10 @@ namespace chitu.mobile {
                 let now = Date.now();
                 if (!isCordovaApp && isiOS && now - touch_move_time < 500 || page.displayStatic) {
                     // page.element.style.display = 'none';
-                    if (page.previous) {
-                        page.previous.element.style.display = 'block';
-                        page.previous.element.style.transition = `0s`;
-                        page.previous.element.style.transform = 'translate(0,0)';
+                    if (previous) {
+                        previous.element.style.display = 'block';
+                        previous.element.style.transition = `0s`;
+                        previous.element.style.transform = 'translate(0,0)';
                     }
                     reslove();
                     return;
@@ -272,26 +272,26 @@ namespace chitu.mobile {
                 page.element.style.transition = `${this.animationTime / 1000}s`;
                 page.element.style.transform = `translate(100%,0px)`;
 
-                if (page.previous) {
-                    page.previous.element.style.display = 'block';
+                if (previous) {
+                    previous.element.style.display = 'block';
                     let delay = 0;
-                    if (!page.previous.element.style.transform) {
-                        page.previous.element.style.transform = `translate(${this.previousPageStartX}px, 0px)`;
+                    if (!previous.element.style.transform) {
+                        previous.element.style.transform = `translate(${this.previousPageStartX}px, 0px)`;
                         delay = 50;
                     }
 
                     window.setTimeout(() => {
-                        page.previous.element.style.transform = `translate(0px, 0px)`;
-                        page.previous.element.style.transition = `${(this.animationTime - delay) / 1000}s`;
+                        previous.element.style.transform = `translate(0px, 0px)`;
+                        previous.element.style.transition = `${(this.animationTime - delay) / 1000}s`;
                     }, delay);
                 }
                 window.setTimeout(() => {
                     page.element.style.display = 'none';
                     page.element.style.removeProperty('transform');
                     page.element.style.removeProperty('transition');
-                    if (page.previous) {
-                        page.previous.element.style.removeProperty('transform');
-                        page.previous.element.style.removeProperty('transition');
+                    if (previous) {
+                        previous.element.style.removeProperty('transform');
+                        previous.element.style.removeProperty('transition');
                     }
 
                     PageDisplayImplement.hiddingPage = null;
@@ -311,7 +311,7 @@ namespace chitu.mobile {
             this.windowWidth = window.innerWidth;
         }
 
-        private enableGesture(page: Page) {
+        private enableGesture(page: Page, previous: Page) {
             let startY, currentY;
             let startX, currentX;
             let moved = false;
@@ -327,8 +327,8 @@ namespace chitu.mobile {
                 startY = event.touches[0].pageY;
                 startX = event.touches[0].pageX;
                 enable = startX <= SIDE_WIDTH
-                if (page.previous) {
-                    page.previous.element.style.display = 'block';
+                if (previous) {
+                    previous.element.style.display = 'block';
                 }
             })
 
@@ -369,8 +369,8 @@ namespace chitu.mobile {
                     page.element.style.transform = `translate(0px, 0px)`;
                     page.element.style.transition = '0.4s';
                     setTimeout(() => {
-                        if (page.previous) {
-                            page.previous.element.style.display = 'none';
+                        if (previous) {
+                            previous.element.style.display = 'none';
                         }
                     }, 500);
                 }
@@ -400,11 +400,11 @@ namespace chitu.mobile {
         }
 
 
-        show(page: Page): Promise<any> {
+        show(page: Page, previous: Page): Promise<any> {
             if (!(page as any).gestured) {
                 (page as any).gestured = true;
                 if (page.allowSwipeBackGestrue)
-                    this.enableGesture(page);
+                    this.enableGesture(page, previous);
             }
 
             let maxZIndex = 1;
@@ -419,8 +419,8 @@ namespace chitu.mobile {
             page.element.style.zIndex = `${maxZIndex + 1}`;
             page.element.style.display = 'block';
             if (page.displayStatic) {
-                if (page.previous) {
-                    page.previous.element.style.display = 'none';
+                if (previous) {
+                    previous.element.style.display = 'none';
                 }
                 return Promise.resolve();
             }
@@ -438,22 +438,22 @@ namespace chitu.mobile {
             }).then(() => {
                 page.element.style.removeProperty('transform');
                 page.element.style.removeProperty('transition');
-                if (page.previous) {
-                    page.previous.element.style.display = 'none';
+                if (previous) {
+                    previous.element.style.display = 'none';
                 }
             })
         }
 
-        hide(page: Page) {
+        hide(page: Page, previous: Page) {
             //============================================
             // 如果 touchmove 时间与方法调用的时间在 500ms 以内，则认为是通过滑屏返回，
             // 通过滑屏返回，是不需要有返回效果的。
             if (isiOS && Date.now() - touch_move_time < 500 || page.displayStatic) {
                 page.element.style.display = 'none';
-                if (page.previous) {
-                    page.previous.element.style.display = 'block';
-                    page.previous.element.style.removeProperty('transform');
-                    page.previous.element.style.removeProperty('transition');
+                if (previous) {
+                    previous.element.style.display = 'block';
+                    previous.element.style.removeProperty('transform');
+                    previous.element.style.removeProperty('transition');
                 }
                 return Promise.resolve();
             }
@@ -462,8 +462,8 @@ namespace chitu.mobile {
             page.element.style.transform = `translate(100%,0px)`;
             page.element.style.transition = '0.4s';
 
-            if (page.previous) {
-                page.previous.element.style.display = 'block';
+            if (previous) {
+                previous.element.style.display = 'block';
             }
 
             return new Promise<any>(reslove => {

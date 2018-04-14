@@ -33,7 +33,7 @@ var chitu;
         }
         let routeString = url.substr(sharpIndex + 1);
         if (!routeString)
-            app.throwError(Errors.canntParseRouteString(url));
+            throw Errors.canntParseRouteString(url);
         if (routeString.startsWith('!')) {
             let url = createUrl(app.currentPage.name, app.currentPage.data);
             history.replaceState(EmtpyStateData, "", url);
@@ -50,14 +50,14 @@ var chitu;
             routePath = routeString;
         }
         if (!routePath)
-            app.throwError(Errors.canntParseRouteString(routeString));
+            throw Errors.canntParseRouteString(routeString);
         let values = {};
         if (search) {
             values = pareeUrlQuery(search);
         }
         let path_parts = routePath.split(this.path_spliter_char).map(o => o.trim()).filter(o => o != '');
         if (path_parts.length < 1) {
-            app.throwError(Errors.canntParseRouteString(routeString));
+            throw Errors.canntParseRouteString(routeString);
         }
         let file_path = path_parts.join('/');
         let pageName = path_parts.join('.');
@@ -112,9 +112,10 @@ var chitu;
             this._runned = false;
             this.cachePages = {};
             this.allNodes = {};
+            this.page_stack = new Array();
             this.error = chitu.Callbacks();
             if (!siteMap) {
-                this.throwError(Errors.argumentNull("siteMap"));
+                throw Errors.argumentNull("siteMap");
             }
             this.allNodes = siteMap.nodes || {};
             for (let key in this.allNodes) {
@@ -132,14 +133,16 @@ var chitu;
             return this.pageCreated.fire(this, page);
         }
         get currentPage() {
-            return this._currentPage;
+            if (this.page_stack.length > 0)
+                return this.page_stack[this.page_stack.length - 1];
+            return null;
         }
         getPage(pageName, values) {
             let allowCache = this.allowCache(pageName);
             console.assert(allowCache != null);
             let cachePage = this.cachePages[pageName];
             if (cachePage != null && allowCache) {
-                return { page: cachePage, isNew: false };
+                return cachePage;
             }
             if (cachePage != null)
                 cachePage.close();
@@ -153,7 +156,6 @@ var chitu;
             console.assert(this.pageType != null);
             let page = new this.pageType({
                 app: this,
-                previous: previous_page,
                 name: pageName,
                 data: values,
                 displayer,
@@ -165,13 +167,14 @@ var chitu;
             };
             let page_onclosed = (sender) => {
                 delete this.cachePages[sender.name];
+                this.page_stack = this.page_stack.filter(o => o != sender);
                 page.closed.remove(page_onclosed);
                 page.loadComplete.remove(page_onloadComplete);
             };
             page.closed.add(page_onclosed);
             page.loadComplete.add(page_onloadComplete);
             this.on_pageCreated(page);
-            return { page, isNew: true };
+            return page;
         }
         allowCache(pageName) {
             let node = this.allNodes[pageName];
@@ -213,28 +216,10 @@ var chitu;
             args = args || {};
             let oldCurrentPage = this.currentPage;
             let isNewPage = false;
-            let obj = this.getPage(pageName, args);
-            let page = obj.page;
-            isNewPage = obj.isNew;
+            let page = this.getPage(pageName, args);
             page.show();
             this.pushPage(page);
             console.assert(page == this.currentPage, "page is not current page");
-            let preRouteData = null;
-            if (oldCurrentPage) {
-                preRouteData = oldCurrentPage.data;
-                oldCurrentPage.on_deactive();
-            }
-            console.assert(this.currentPage != null);
-            if (isNewPage) {
-                this.currentPage.on_active(args);
-            }
-            else {
-                let onload = (sender, args) => {
-                    sender.on_active(args);
-                    sender.load.remove(onload);
-                };
-                this.currentPage.load.add(onload);
-            }
             return this.currentPage;
         }
         showPageByUrl(url, args) {
@@ -242,7 +227,7 @@ var chitu;
                 throw Errors.argumentNull('url');
             var routeData = this.parseUrl(url);
             if (routeData == null) {
-                this.throwError(Errors.noneRouteMatched(url));
+                throw Errors.noneRouteMatched(url);
             }
             Object.assign(routeData.values, args || {});
             let node = this.allNodes[routeData.pageName];
@@ -252,14 +237,27 @@ var chitu;
         }
         pushPage(page) {
             let previous = this.currentPage;
-            this._currentPage = page;
-            page.previous = previous;
+            this.page_stack.push(page);
         }
         findSiteMapNode(pageName) {
             return this.allNodes[pageName];
         }
         setLocationHash(url) {
             history.pushState(EmtpyStateData, "", url);
+        }
+        closeCurrentPage() {
+            if (this.page_stack.length <= 0)
+                return;
+            var page = this.page_stack.pop();
+            if (this.allowCache(page.name)) {
+                page.hide(this.currentPage);
+            }
+            else {
+                page.close();
+            }
+            if (this.currentPage) {
+                this.currentPage.show();
+            }
         }
         redirect(node, args) {
             if (!node)
@@ -271,10 +269,6 @@ var chitu;
         }
         back() {
             history.back();
-        }
-        throwError(err, page) {
-            let e = err;
-            this.error.fire(this, e, page);
         }
         loadjs(path) {
             return new Promise((reslove, reject) => {
@@ -457,10 +451,7 @@ var chitu;
             this.hidden = chitu.Callbacks();
             this.closing = chitu.Callbacks();
             this.closed = chitu.Callbacks();
-            this.active = chitu.Callbacks();
-            this.deactive = chitu.Callbacks();
             this._element = params.element;
-            this._previous = params.previous;
             this._app = params.app;
             this._displayer = params.displayer;
             this._action = params.action;
@@ -494,49 +485,40 @@ var chitu;
         on_closed() {
             return this.closed.fire(this, this.data);
         }
-        on_active(args) {
-            console.assert(args != null, 'args is null');
-            Object.assign(this.data, args);
-            this.active.fire(this, args);
-        }
-        on_deactive() {
-            this.deactive.fire(this, this.data);
-        }
         show() {
             this.on_showing();
-            return this._displayer.show(this).then(o => {
+            let currentPage = this._app.currentPage;
+            if (this == currentPage) {
+                currentPage = null;
+            }
+            return this._displayer.show(this, currentPage).then(o => {
                 this.on_shown();
             });
         }
-        hide() {
+        hide(currentPage) {
             this.on_hiding();
-            return this._displayer.hide(this).then(o => {
+            return this._displayer.hide(this, currentPage).then(o => {
                 this.on_hidden();
             });
         }
         close() {
-            return this.hide().then(() => {
+            return new Promise((resolve, reject) => {
                 this.on_closing();
                 this._element.remove();
                 this.on_closed();
+                resolve();
             });
         }
         createService(type) {
             type = type || chitu.Service;
             let service = new type();
             service.error.add((ender, error) => {
-                this._app.throwError(error, this);
+                this._app.error.fire(this._app, error, this);
             });
             return service;
         }
         get element() {
             return this._element;
-        }
-        get previous() {
-            return this._previous;
-        }
-        set previous(value) {
-            this._previous = value;
         }
         get name() {
             return this._name;
@@ -550,18 +532,13 @@ var chitu;
                 }
                 else {
                     let actionResult;
-                    try {
-                        actionResult = yield this._app.loadjs(this._action);
-                    }
-                    catch (err) {
-                        this._app.throwError(err, this);
-                    }
+                    actionResult = yield this._app.loadjs(this._action);
                     if (!actionResult)
-                        this._app.throwError(Errors.exportsCanntNull(pageName), this);
+                        throw Errors.exportsCanntNull(pageName);
                     let actionName = 'default';
                     action = actionResult[actionName];
                     if (action == null) {
-                        this._app.throwError(Errors.canntFindAction(pageName), this);
+                        throw Errors.canntFindAction(pageName);
                     }
                 }
                 this.on_load();
@@ -576,7 +553,7 @@ var chitu;
                     }
                 }
                 else {
-                    this._app.throwError(Errors.actionTypeError(pageName), this);
+                    throw Errors.actionTypeError(pageName);
                 }
             });
         }
@@ -588,17 +565,17 @@ var chitu;
     chitu.Page = Page;
 })(chitu || (chitu = {}));
 class PageDisplayerImplement {
-    show(page) {
+    show(page, previous) {
         page.element.style.display = 'block';
-        if (page.previous != null) {
-            page.previous.element.style.display = 'none';
+        if (previous != null) {
+            previous.element.style.display = 'none';
         }
         return Promise.resolve();
     }
-    hide(page) {
+    hide(page, previous) {
         page.element.style.display = 'none';
-        if (page.previous != null) {
-            page.previous.element.style.display = 'block';
+        if (previous != null) {
+            previous.element.style.display = 'block';
         }
         return Promise.resolve();
     }
