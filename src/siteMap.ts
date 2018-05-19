@@ -18,6 +18,9 @@ let nodes = {
         action: 'modules/home/location',
         cache: true,
     },
+    home_news: {
+        action: `modules/home/news`,
+    },
     home_product: {
         action: 'modules/home/product',
         weight: 10,

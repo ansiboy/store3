@@ -3,7 +3,7 @@ import { Application as BaseApplication, Page as BasePage } from 'chitu.mobile';
 import errorHandle from 'errorHandle';
 import * as ui from 'ui';
 import { SiteMap, SiteMapNode } from 'chitu';
-export { app, Page, searchNavBar } from 'application';
+export { app, Page } from 'application';
 import { app } from 'application';
 import { siteMap } from './site';
 export { PageProps, default as siteMap } from 'siteMap';

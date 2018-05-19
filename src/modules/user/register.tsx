@@ -1,4 +1,4 @@
-import { Page, defaultNavBar, app, config } from 'site';
+import { Page, defaultNavBar, app, config, siteMap } from 'site';
 import FormValidator = require('core/formValidator');
 import * as services from 'services';
 import * as ui from 'ui';
@@ -76,7 +76,7 @@ export default function (page: Page) {
                 smsId: this.smsId,
                 verifyCode
             }).then(() => {
-                app.redirect(config.defaultUrl);
+                app.redirect(siteMap.nodes.home_index);
             });
         }
         render() {

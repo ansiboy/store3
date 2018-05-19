@@ -1,6 +1,6 @@
 import chitu = require('chitu');
 
-const REMOTE_HOST = 'service.alinq.cn';
+const REMOTE_HOST = 'service4.alinq.cn';
 
 
 let protocol = location.protocol;
@@ -14,7 +14,7 @@ let config = {
         weixin: `${protocol}//${REMOTE_HOST}/UserWeiXin/`,
         account: `${protocol}//${REMOTE_HOST}/UserAccount/`,
     },
-    appKey: '59a0d63ab58cf427f90c7d3e',//'59c8e00a675d1b3414f83fc3',// 
+    appKey: '7bbfa36c-8115-47ad-8d47-9e52b58e7efd',//'59c8e00a675d1b3414f83fc3',// 
     /** 调用服务接口超时时间，单位为秒 */
     ajaxTimeout: 30,
     pageSize: 10
@@ -45,7 +45,7 @@ export function imageUrl(path: string, width?: number) {
     }
 
     let urlParams = new Array<{ name: string, value: string }>();
-    let url = `${protocol}//image.alinq.cn` + path;
+    let url = `${protocol}//image.bailunmei.com` + path;
     if (width) {
         // url = url + '?width=' + width;
         urlParams.push({ name: 'width', value: width.toString() });
@@ -160,7 +160,7 @@ export abstract class Service {
     ajax<T>(url: string, options: RequestInit): Promise<T> {
 
         options.headers = options.headers || {} as Headers;
-        options.headers['application-key'] = config.appKey
+        options.headers['application-id'] = config.appKey
         let user_token: string = userData.userToken.value;
         if (user_token) {
             options.headers['user-token'] = user_token;
@@ -995,7 +995,7 @@ export class MemberService extends Service {
     /** 用户注册 */
     register(data: RegisterModel) {
         console.assert(data != null);
-        let url = `https://${config.service.host}/user/register`;
+        let url = `${config.service.member}User/Register`;
         return this.post<{ token: string, userId: string }>(url, data).then((data) => {
             userData.userToken.value = data.token;
             return data;
@@ -1003,7 +1003,7 @@ export class MemberService extends Service {
     }
 
     login(username: string, password: string): Promise<{ token: string, userId: string }> {
-        let url = `https://${config.service.host}/user/login`;
+        let url = `${config.service.member}User/Login`;
         return this.post<{ token: string, userId: string }>(url, { username, password }).then((result) => {
             userData.userToken.value = result.token;
             return result;
@@ -1011,7 +1011,7 @@ export class MemberService extends Service {
     }
 
     resetPassword(mobile: string, password: string, smsId: string, verifyCode: string) {
-        let url = `https://${config.service.host}/user/resetPassword`;
+        let url = `${config.service.member}User/ResetPassword`;
         return this.put(url, { mobile, password, smsId, verifyCode }).then(data => {
             debugger;
             return data;
@@ -1019,7 +1019,7 @@ export class MemberService extends Service {
     }
 
     changePassword(password: string, smsId: string, verifyCode: string) {
-        let url = `https://${config.service.host}/user/changePassword`;
+        let url = `${config.service.member}User/ChangePassword`;
         return this.put(url, { password, smsId, verifyCode }).then(data => {
             debugger;
             return data;
@@ -1027,7 +1027,7 @@ export class MemberService extends Service {
     }
 
     changeMobile(mobile: string, smsId: string, verifyCode: string) {
-        let url = `https://${config.service.host}/user/changeMobile`;
+        let url = `${config.service.member}User/ChangeMobile`;
         return this.put(url, { mobile, smsId, verifyCode });
     }
 

@@ -1,4 +1,4 @@
-import { Page, defaultNavBar, Menu, app } from 'site';
+import { Page, defaultNavBar, Menu, app, siteMap } from 'site';
 import { StationService } from 'services';
 import { DataList } from 'components/dataList';
 
@@ -24,7 +24,7 @@ export default function (page: Page) {
                     <section className="main">
                         <DataList loadData={(i) => this.loadNewsList(i)}
                             dataItem={(o: News) =>
-                                <a key={o.Id} className="item" onClick={() => app.redirect(`home_news?id=${o.Id}`)}>
+                                <a key={o.Id} className="item" onClick={() => app.redirect(siteMap.nodes.home_news, { id: o.Id })}>
                                     <img src={o.ImgUrl} className="img-responsive" ref={(e: HTMLImageElement) => e ? ui.renderImage(e) : null} />
                                     <div className="title">{o.Title}</div>
                                 </a>

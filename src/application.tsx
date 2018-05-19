@@ -3,7 +3,7 @@ import { userData } from 'services';
 
 import siteMap from 'siteMap';
 
-export class Application extends BaseApplication {
+export class Application extends chitu.Application<chitu.SiteMapNode> {
     // private topLevelPages = ['home.index', 'home.class', 'shopping.shoppingCart', 'home.newsList', 'user.index'];
     constructor() {
         super(siteMap);
@@ -24,9 +24,6 @@ export class Application extends BaseApplication {
 
         let className = pageName.split('_').join('-');
         page.element.className = `page ${className}`;
-        // if (pageName == 'home_index') {
-        //     page.displayStatic = true;
-        // }
     }
 
     onError(sender: this, error: Error, page: chitu.Page) {
@@ -69,32 +66,13 @@ export class Application extends BaseApplication {
         }
     }
 
-    // protected parseRouteString(routeString: string) {
-    //     let routeData = new chitu.RouteData(this.fileBasePath, routeString, '_');
-    //     return routeData;
-    // }
 
-    // protected createPage(routeData, args) {
-    //     let page = super.createPage(routeData, args);// as Page;
-
-    //     let path = routeData.actionPath.substr(routeData.basePath.length);
-    //     let cssPath = `css!content/app` + path;
-    //     requirejs([cssPath]);
-
-    //     return page;
-    // }
 }
 
 
 const loadingClassName = 'loading';
-/** 是否为 APP */
-let isCordovaApp = location.protocol === 'file:';
-/** 是否为安卓系统 */
-let isAndroid = navigator.userAgent.indexOf('Android') > -1;
-
 export class Page extends BasePage {
-    // private allowSwipeBackGestrue;
-    // displayStatic;
+    // private loadCompleted = false;
 
     constructor(params) {
         super(params);
@@ -107,6 +85,8 @@ export class Page extends BasePage {
                 i.className = i.className + ' icon-spin';
         })
         //=========================================
+
+this.loadComplete.add
 
         this.renderLoading();
     }
@@ -140,45 +120,12 @@ export class Page extends BasePage {
         );
     }
 
-
-
-
-    // createService<T extends Service>(serviceType: { new(): T }): T {
-    //     let result = new serviceType();
-    //     result.error.add((sender, error) => {
-    //         errorHandle(app, error);
-    //     })
-    //     return result;
-    // }
-
     reload() {
         let result = super.reload();
         this.renderLoading();
         return result;
     }
 }
-
-export function productNavBar() {
-    return (
-        <nav style={{ opacity: 1, backgroundColor: 'unset' }}>
-            <button onClick={() => app.back()} className="leftButton">
-                <i className="icon-chevron-left"></i>
-            </button>
-        </nav>
-    );
-}
-
-export function searchNavBar() {
-    return (
-        <nav style={{ backgroundColor: 'white', borderBottom: 'solid 1px #ccc' }}>
-            <button onClick={() => window['app'].back()} className="leftButton">
-                <i className="icon-chevron-left"></i>
-            </button>
-        </nav>
-    );
-}
-
-
 
 export let app: Application = window['app'] = window['app'] || new Application();
 

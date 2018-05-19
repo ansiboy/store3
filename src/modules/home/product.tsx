@@ -23,7 +23,7 @@ interface ProductPageState {
 
 interface Props {
     product: Product,
-    active: chitu.Callback1<chitu.Page, chitu.PageData>,
+    // active: chitu.Callback1<chitu.Page, chitu.PageData>,
     createService: <T extends chitu.Service>(type: chitu.ServiceConstructor<T>) => T,
 }
 
@@ -141,12 +141,10 @@ export class ProductPage extends React.Component<Props, ProductPageState>{
                 <section className="main" ref={(e: HTMLElement) => this.mainView = e || this.mainView}>
                     <div name="productImages" className="swiper-container">
                         <div className="swiper-wrapper">
-                            {p.ImagePaths.map(o => (
-                                <div key={o} className="swiper-slide" style={{ textAlign: "center" }}>
-                                    <img src={imageUrl(o)} className="img-responsive-100 img-full">
-                                    </img>
-                                </div>
-                            ))}
+                            <div key={p.ImagePath} className="swiper-slide" style={{ textAlign: "center" }}>
+                                <img src={imageUrl(p.ImagePath)} className="img-responsive-100 img-full">
+                                </img>
+                            </div>
                         </div>
                     </div>
 
@@ -201,11 +199,9 @@ export class ProductPage extends React.Component<Props, ProductPageState>{
 export default async function (page: chitu.Page) {
     let shop = page.createService(ShoppingService);
     let product = await shop.product(page.data.id);
-    page.active
     let props = {
         shop,
         product,
-        active: page.active,
         createService: page.createService,
     } as Props;
 

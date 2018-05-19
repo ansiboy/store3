@@ -1,4 +1,4 @@
-import { Page, defaultNavBar } from 'site';
+import { Page, defaultNavBar, siteMap } from 'site';
 import { ShoppingService } from 'services';
 import { app } from 'site';
 import { DataList } from 'components/dataList';
@@ -27,7 +27,7 @@ export default function (page: Page) {
         }
 
         showProduct(productId: string) {
-            app.redirect(`#home_product?id=${productId}`);
+            app.redirect(siteMap.nodes.home_product, { id: productId });
         }
         loadFavorProducts(pageIndex: number) {
             if (pageIndex > 0) {
