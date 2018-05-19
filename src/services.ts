@@ -163,7 +163,7 @@ export abstract class Service {
         options.headers['application-id'] = config.appKey
         let user_token: string = userData.userToken.value;
         if (user_token) {
-            options.headers['user-token'] = user_token;
+            options.headers['token'] = user_token;
         }
 
         return new Promise<T>((reslove, reject) => {
@@ -956,7 +956,7 @@ export class MemberService extends Service {
     userInfo(): Promise<UserInfo> {
         let url1 = this.url('Member/CurrentUserInfo');
         let url2 = `https://${config.service.host}/user/userInfo`;
-        return Promise.all([this.get<UserInfo>(url1), this.get<{ mobile }>(url2)])
+        return Promise.all([this.get<UserInfo>(url1)])//, this.get<{ mobile }>(url2)
             .then((data) => {
                 data[0].Mobile = (data[1] || {} as any).mobile;
                 return data[0];
